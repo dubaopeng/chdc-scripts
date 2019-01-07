@@ -1,0 +1,13 @@
+-- asserts分析结果到mysql中
+export --connect  jdbc:mysql://10.80.155.130:3306/test_chdc?useUnicode=true&characterEncoding=utf-8 --username root --password bigdata123456 --table  "cix_online_customer_assets_view" --export-dir "/data/hive/warehouse/dw_rfm.db/customer_assets_view_history" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+-- repurchase分析结果导出到mysql中
+
+export --connect  jdbc:mysql://10.80.155.130:3306/test_chdc?useUnicode=true&characterEncoding=utf-8  --username root --password bigdata123456 --table  "cix_online_customer_repurchase_anlyze" --export-dir "/data/hive/warehouse/dw_rfm.db/customer_repurchase_anlyze_history" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+--retention 客户保持率分析结果
+
+export --connect  jdbc:mysql://10.80.155.130:3306/test_chdc?useUnicode=true&characterEncoding=utf-8  --username root --password bigdata123456 --table  "cix_online_customer_retention_analyze" --export-dir "/data/hive/warehouse/dw_rfm.db/customer_retention_analyze_history" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
