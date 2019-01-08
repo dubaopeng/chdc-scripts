@@ -1,0 +1,18 @@
+会员积分、等级变化分析
+
+1、只要积分和等级在指定时间内发生变化的都需要统计
+
+-- 昨天的计算
+date_sub('${stat_date}',1)
+
+--本周的计算
+date_sub('${stat_date}',pmod(datediff('${stat_date}', concat(year('${stat_date}'),'-01-01'))-6,7));
+
+-- 本月
+date_sub('${stat_date}',dayofmonth('${stat_date}')-1);
+
+-- 近七天
+date_sub('${stat_date}',7)
+
+-- 近30天
+date_sub('${stat_date}',30)

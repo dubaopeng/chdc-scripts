@@ -1,4 +1,4 @@
-SET mapred.job.name='category-trade-analyze-everymonth 每月进行行业数据分析';
+SET mapred.job.name='member-point-grade-change 会员积分等级变更分析';
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -21,10 +21,158 @@ set hive.support.concurrency=false;
 
 -- 历史订单类目统计
 
--- 子订单：dw_base.b_std_order
--- 订单表：dw_base.b_std_trade
--- 商品信息: dw_base.b_std_product (需接入)
--- 店铺类目表：b_plat_shop_category (需接入)
+-- 会员基本信息：dw_business.b_std_member_base_info
+-- 有效积分：dw_business.b_member_efffect_point
+-- 等级变更表：dw_business.b_member_grade_change
+-- 积分变更表: dw_business.b_member_point_change
+
+set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
+
+--昨天
+set yestoday=date_sub('${stat_date}',1);
+--本周的第一天
+set weekfirst=date_sub('${stat_date}',pmod(datediff('${stat_date}', concat(year('${stat_date}'),'-01-01'))-6,7));
+-- 本月的第一天
+set monthfirst=date_sub('${stat_date}',dayofmonth('${stat_date}')-1);
+-- 近七天
+set last7day=date_sub('${stat_date}',7);
+-- 近30天
+set last30day=date_sub('${stat_date}',30);
+
+
+-- 首先计算昨天的数据
+
+-- 1、有积分变动的会员人数
+select card_plan_id,member_id,change_value,change_time,action_type,source
+from dw_business.b_member_point_change
+
+-- 2、会员等级变化表
+select card_plan_id,member_id,grade_before_change,grade_after_change,grade_period,change_time,change_type,change_source
+from dw_business.b_member_grade_change
+
+-- 3、会员有效积分
+select card_plan_id,member_id,point,effective_date,occur_date,create_date,overdue_date,valid,modify_time
+from dw_business.b_member_efffect_point
+
+
+--创建积分变更临时表
+CREATE TABLE IF NOT EXISTS dw_rfm.`b_point_change_analyze_temp`(
+	`card_plan_id` string,
+	`member_id` string,
+	`change_value` bigint,
+	`type` int,
+	`yestoday` int,
+	`thisweek` int,
+	`thismonth` int,
+	`last7day` int,
+	`last30day` int
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
+STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
+
+-- 近30天有积分变化的数据，中间包含昨天，本周、本月、近7天
+insert overwrite table dw_rfm.b_point_change_analyze_temp
+select card_plan_id,member_id,change_value,
+	case when change_value >= 0 then 1 else -1 end as type,
+	case when substr(change_time,1,10) >= ${hiveconf:yestoday} then 1 else 0 end as yestoday,
+	case when substr(change_time,1,10) >= ${hiveconf:weekfirst} then 1 else 0 end as thisweek,
+	case when substr(change_time,1,10) >= ${hiveconf:monthfirst} then 1 else 0 end as thismonth,
+	case when substr(change_time,1,10) >= ${hiveconf:last7day} then 1 else 0 end as last7day,
+	case when substr(change_time,1,10) >= ${hiveconf:last30day} then 1 else 0 end as last30day
+from dw_business.b_member_point_change
+where part >= ${hiveconf:last30day} and part <= '${stat_date}'
+and substr(change_time,1,10) >= ${hiveconf:last30day} and substr(change_time,1,10)<='${stat_date}';
+
+-- 计算每个时间段内有积分变动的会员数
+drop table if exists dw_rfm.b_point_change_members_temp;
+create table dw_rfm.b_point_change_members_temp as
+select card_plan_id,1 as rangetype,count(distinct member_id) as members
+from dw_rfm.b_point_change_analyze_temp
+where yestoday=1 group by card_plan_id
+union all
+select card_plan_id,2 as rangetype,count(distinct member_id) as members
+from dw_rfm.b_point_change_analyze_temp
+where thisweek=1 group by card_plan_id
+union all
+select card_plan_id,3 as rangetype,count(distinct member_id) as members
+from dw_rfm.b_point_change_analyze_temp
+where thismonth=1
+group by card_plan_id
+union all
+select card_plan_id,4 as rangetype,count(distinct member_id) as members
+from dw_rfm.b_point_change_analyze_temp
+where last7day=1
+group by card_plan_id
+union all
+select card_plan_id,5 as rangetype,count(distinct member_id) as members
+from dw_rfm.b_point_change_analyze_temp
+where last30day=1
+group by card_plan_id;
+
+
+-- 计算发放和消耗的积分 type=1 发放 type=-1 消耗
+drop table if exists dw_rfm.b_point_change_total_temp;
+create table dw_rfm.b_point_change_total_temp as
+select card_plan_id,type,1 as rangetype,
+case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
+from dw_rfm.b_point_change_analyze_temp
+where yestoday=1 group by card_plan_id,type
+union all
+select card_plan_id,type,2 as rangetype,
+case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
+from dw_rfm.b_point_change_analyze_temp
+where thisweek=1 group by card_plan_id,type
+select card_plan_id,type,3 as rangetype,
+case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
+from dw_rfm.b_point_change_analyze_temp
+where thismonth=1 group by card_plan_id,type
+select card_plan_id,type,4 as rangetype,
+case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
+from dw_rfm.b_point_change_analyze_temp
+where last7day=1 group by card_plan_id,type
+select card_plan_id,type,5 as rangetype,
+case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
+from dw_rfm.b_point_change_analyze_temp
+where last30day=1 group by card_plan_id,type;
+
+
+-- 计算积分失效和当前有效积分
+-- 积分失效：积分到期日期在统计周期内的积分
+-- 有效积分存量：截至“数据截至日期”时有效积分
+
+-- 近30天失效的积分计算
+drop table if exists
+create table dw_rfm.b_invalid_points_last30day as
+select card_plan_id,point,
+	case when substr(overdue_date,1,10) >= ${hiveconf:yestoday} then 1 else 0 end as yestoday,
+	case when substr(overdue_date,1,10) >= ${hiveconf:weekfirst} then 1 else 0 end as thisweek,
+	case when substr(overdue_date,1,10) >= ${hiveconf:monthfirst} then 1 else 0 end as thismonth,
+	case when substr(overdue_date,1,10) >= ${hiveconf:last7day} then 1 else 0 end as last7day,
+	case when substr(overdue_date,1,10) >= ${hiveconf:last30day} then 1 else 0 end as last30day
+from dw_business.b_member_efffect_point
+where substr(overdue_date,1,10) <= '${stat_date}'
+and substr(overdue_date,1,10) >= ${hiveconf:last30day}
+and valid=0;
+
+
+
+
+
+select
+from dw_business.b_member_efffect_point
+where substr(effective_date,1,10) >= '${stat_date}'
+and valid=1;
+
+
+
+
+
+
+
+
+
+
+
 
 
 --首先计算近两年的历史订单记录
@@ -204,7 +352,7 @@ on a.parent_category_id=b.parent_category_id;
 -- 只要该类目过去1年（近12月）销售件数占比大于等于全店10%，此店就可以该类目行业数据对比权限
 
 -- 店铺过去1年的各类目卖出数量统计
-drop table if exists dw_rfm.b_last_year_shop_category_sel_num;
+drop table if exsits dw_rfm.b_last_year_shop_category_sel_num;
 create table dw_rfm.b_last_year_shop_category_sel_num
 select d.plat_code,d.uni_shop_id,d.shop_id,d.parent_category_id,sum(d.product_num) product_nums
 from (
@@ -273,7 +421,7 @@ where re.sortno <= 10;
 -- 行业的计算基于当日的RFM结果表进行统计，需要判断当天的RFM结果表是否已经计算完成，然后开始这个任务
 
 -- 行业复购率计算临时结果表
-drop table if exists dw_rfm.b_category_repurchase_temp;
+drop table if exsits dw_rfm.b_category_repurchase_temp;
 create table dw_rfm.b_category_repurchase_temp as
 select t1.parent_category_id,
 		avg(t1.rate) as rate,
@@ -313,7 +461,7 @@ from
 group by t1.parent_category_id;
 
 -- 行业客户保持率临时结果表
-drop table if exists dw_rfm.b_category_retention_temp;
+drop table if exsits dw_rfm.b_category_retention_temp;
 create create dw_rfm.b_category_retention_temp as
 select t1.parent_category_id,avg(retention_rate) as retention_rate
 from 
