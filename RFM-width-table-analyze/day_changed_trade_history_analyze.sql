@@ -631,7 +631,8 @@ select r.tenant,r.plat_code,r.uni_id,r.day,
 	  concat_ws('',collect_set(r.first_payment)) first_payment,
 	  case when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) =0 then NULL 
 	  when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) >0 then concat_ws('',collect_set(r.second_buy_time_mid))
-	  else concat_ws('',collect_set(r.second_buy_time)) end as second_buy_time
+	  when concat_ws('',collect_set(r.second_buy_time)) < concat_ws('',collect_set(r.second_buy_time_mid)) then concat_ws('',collect_set(r.second_buy_time))
+	  else NULL end as second_buy_time
 from(
 	select t.tenant,t.plat_code,t.uni_id,t.day,
 	   case t.rank when 1 then t.first_buy_time else '' end as first_buy_time,
@@ -768,7 +769,8 @@ select r.tenant,r.uni_id,r.day,
 	  concat_ws('',collect_set(r.first_payment)) first_payment,
 	  case when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) =0 then NULL 
 	  when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) >0 then concat_ws('',collect_set(r.second_buy_time_mid))
-	  else concat_ws('',collect_set(r.second_buy_time)) end as second_buy_time
+	  when concat_ws('',collect_set(r.second_buy_time)) < concat_ws('',collect_set(r.second_buy_time_mid)) then concat_ws('',collect_set(r.second_buy_time))
+	  else NULL end as second_buy_time
 from(
 	select t.tenant,t.uni_id,t.day,
 	   case t.rank when 1 then t.first_buy_time else '' end as first_buy_time,

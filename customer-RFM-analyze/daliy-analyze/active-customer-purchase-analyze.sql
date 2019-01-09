@@ -91,7 +91,7 @@ from(
 		1 as type
 		from dw_rfm.b_qqd_tenant_rfm t
 	where t.part ='${stat_date}'
-		and t.first_buy_time >= add_months('${stat_date}',-12)
+		and t.first_buy_time > add_months('${stat_date}',-12)
 		and t.second_buy_time is not null
 		and t.year_buy_times > 1
 	group by t.tenant,datediff(t.second_buy_time,t.first_buy_time)
@@ -103,7 +103,7 @@ from(
 		2 as type
 		from dw_rfm.b_qqd_plat_rfm t
 	where t.part ='${stat_date}'
-		and t.first_buy_time >= add_months('${stat_date}',-12)
+		and t.first_buy_time > add_months('${stat_date}',-12)
 		and t.second_buy_time is not null
 		and t.year_buy_times > 1
 	group by t.tenant,t.plat_code,datediff(t.second_buy_time,t.first_buy_time)
@@ -115,7 +115,7 @@ from(
 		3 as type
 		from dw_rfm.b_qqd_shop_rfm t
 	where t.part ='${stat_date}'
-		and t.first_buy_time >= add_months('${stat_date}',-12)
+		and t.first_buy_time > add_months('${stat_date}',-12)
 		and t.second_buy_time is not null
 		and t.year_buy_times > 1
 	group by t.tenant,t.plat_code,t.uni_shop_id,datediff(t.second_buy_time,t.first_buy_time)

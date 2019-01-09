@@ -251,7 +251,7 @@ from
 		case when lower(a.trade_type) = 'step' then a.pay_time else a.created end as created
 	from dw_base.b_std_trade a
 	where
-	  a.part = add_months('${stat_date}',-24)
+	  a.part = substr(add_months('${stat_date}',-24),1,7)
 	  and (a.created is not null and substr(a.created,1,10) = add_months('${stat_date}',-24))
 	  and a.order_status in ('WAIT_SELLER_SEND_GOODS','SELLER_CONSIGNED_PART','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','TRADE_FINISHED','PAID_FORBID_CONSIGN','ORDER_RECEIVED','TRADE_PAID')
 ) c
@@ -275,7 +275,7 @@ from(
 		case when lower(a.trade_type) = 'step' then a.pay_time else a.created end as created
 	from dw_base.b_std_trade a
 	where
-	  a.part = add_months('${stat_date}',-12)
+	  a.part = substr(add_months('${stat_date}',-12),1,7)
 	  and (a.created is not null and substr(a.created,1,10) = add_months('${stat_date}',-12))
 	  and a.order_status in ('WAIT_SELLER_SEND_GOODS','SELLER_CONSIGNED_PART','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','TRADE_FINISHED','PAID_FORBID_CONSIGN','ORDER_RECEIVED','TRADE_PAID')
 ) c
@@ -505,7 +505,8 @@ select r.tenant,r.plat_code,r.uni_id,
 	  concat_ws('',collect_set(r.first_payment)) first_payment,
 	  case when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) =0 then NULL 
 	  when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) >0 then concat_ws('',collect_set(r.second_buy_time_mid))
-	  else concat_ws('',collect_set(r.second_buy_time)) end as second_buy_time
+	  when concat_ws('',collect_set(r.second_buy_time)) < concat_ws('',collect_set(r.second_buy_time_mid)) then concat_ws('',collect_set(r.second_buy_time))
+	  else NULL end as second_buy_time
 from(
 	select t.tenant,t.plat_code,t.uni_id,
 	   case t.rank when 1 then t.first_buy_time else '' end as first_buy_time,
@@ -584,7 +585,8 @@ select r.tenant,r.uni_id,
 	  concat_ws('',collect_set(r.first_payment)) first_payment,
 	  case when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) =0 then NULL 
 	  when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) >0 then concat_ws('',collect_set(r.second_buy_time_mid))
-	  else concat_ws('',collect_set(r.second_buy_time)) end as second_buy_time
+	  when concat_ws('',collect_set(r.second_buy_time)) < concat_ws('',collect_set(r.second_buy_time_mid)) then concat_ws('',collect_set(r.second_buy_time))
+	  else NULL end as second_buy_time
 from(
 	select t.tenant,t.uni_id,
 	   case t.rank when 1 then t.first_buy_time else '' end as first_buy_time,

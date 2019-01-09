@@ -1,4 +1,4 @@
-SET mapred.job.name='member-point-grade-change 会员积分等级变更分析';
+SET mapred.job.name='member-life-cycle-analyze 会员生命周期分析';
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -22,37 +22,47 @@ set hive.support.concurrency=false;
 -- 历史订单类目统计
 
 -- 会员基本信息：dw_business.b_std_member_base_info
--- 有效积分：dw_business.b_member_efffect_point
--- 等级变更表：dw_business.b_member_grade_change
--- 积分变更表: dw_business.b_member_point_change
+-- 会员卡和平台店铺关系表：dw_business.b_card_shop_rel
+-- 会员和客户的关系表：dw_business.b_customer_member_relation
+-- 会员卡等级信息：dw_business.b_card_grade_info
+-- 全渠道店铺客户RFM: dw_rfm.b_qqd_shop_rfm
 
 set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 
---昨天
-set yestoday=date_sub('${stat_date}',1);
---本周的第一天
-set weekfirst=date_sub('${stat_date}',pmod(datediff('${stat_date}', concat(year('${stat_date}'),'-01-01'))-6,7));
--- 本月的第一天
-set monthfirst=date_sub('${stat_date}',dayofmonth('${stat_date}')-1);
--- 近七天
-set last7day=date_sub('${stat_date}',7);
--- 近30天
-set last30day=date_sub('${stat_date}',30);
+
+-- 1、获取会员信息及其关联的客户Id
+
+select c.card_plan_id,c.plat_code,c.uni_shop_id,c.uni_id,c.grade,
+	d.earliest_time,d.first_buy_time,d.year_buy_times,d.tyear_buy_times,d.btyear_buy_times
+from (
+	select r.card_plan_id,r.member_id,r.grade,r.plat_code,r.shop_id,r1.uni_id,
+		concat(r.plat_code,'|',r.shop_id) as uni_shop_id 
+	from(
+		select t.card_plan_id,t.member_id,t.grade,t1.plat_code,t1.shop_id
+		from (
+			select a.card_plan_id,a.member_id,a.grade
+			from  dw_business.b_std_member_base_info a
+			where substr(a.created,1,10) <= '${stat_date}' 
+		) t
+		join 
+		dw_business.b_card_shop_rel t1
+		on t.card_plan_id = t1.card_plan_id
+	) r
+	join dw_business.b_customer_member_relation r1
+	on r.card_plan_id = r1.card_plan_id and r.member_id=r1.member_id
+) c
+right join dw_rfm.b_qqd_shop_rfm d
+on c.plat_code=d.plat_code and c.uni_shop_id=d.uni_shop_id and c.uni_id=d.uni_id;
 
 
--- 首先计算昨天的数据
+-- 2、与RFM宽表进行关联
 
--- 1、有积分变动的会员人数
-select card_plan_id,member_id,change_value,change_time,action_type,source
-from dw_business.b_member_point_change
 
--- 2、会员等级变化表
-select card_plan_id,member_id,grade_before_change,grade_after_change,grade_period,change_time,change_type,change_source
-from dw_business.b_member_grade_change
+select * from dw_rfm.b_qqd_shop_rfm
+left join 
 
--- 3、会员有效积分
-select card_plan_id,member_id,point,effective_date,occur_date,create_date,overdue_date,valid,modify_time
-from dw_business.b_member_efffect_point
+
+
 
 
 --创建积分变更临时表
@@ -184,13 +194,10 @@ union all
 drop table if exists dw_rfm.b_invalid_points_last30day;
 
 
--- 当前有效积分存量,不随时间变化,只有最新当前一份数据
-drop table if exists dw_rfm.b_current_effect_points_temp;
-create table dw_rfm.b_current_effect_points_temp as
-select card_plan_id,sum(point) effect_points
+-- 积分存量存在疑问
+select
 from dw_business.b_member_efffect_point
-where substr(effective_date,1,10) <= '${stat_date}'
-and substr(overdue_date,1,10) > '${stat_date}'
+where substr(effective_date,1,10) >= '${stat_date}'
 and valid=1;
 
 
@@ -234,104 +241,11 @@ drop table if exists dw_rfm.b_new_member_last30day_temp;
 
 
 -- 计算会员等级变更数量
--- 昨日等级变动会员
-drop table if exists dw_rfm.b_member_grade_statics_temp;
-create table dw_rfm.b_member_grade_statics_temp as
-select re.card_plan_id,re.rangetype,sum(re.upnums) as upnums,sum(re.downnums) as downnums
-from(
-	select t1.card_plan_id,t1.rangetype,
-	case when t1.change_type='UP' then t1.members else 0 end as upnums,
-	case when t1.change_type='DOWN' then t1.members else 0 end as downnums
-	from
-	(
-		select re.card_plan_id,re.change_type,1 as rangetype,count(re.member_id) members
-		from(
-			select *,row_number() over (partition by r.card_plan_id,r.member_id order by r.change_time) as num
-			from(
-				select t.card_plan_id,t.member_id,t.change_type,t.change_time
-					from dw_business.b_member_grade_change t
-				where t.part = ${hiveconf:yestoday}
-					and substr(t.change_time,1,10) = ${hiveconf:yestoday}
-					and (t.change_type = 'UP' or t.change_type = 'DOWN')
-			) r
-		) re
-		where re.num=1
-		group by re.card_plan_id,re.change_type
 
-		union all
-		-- 本周指标计算
-		select re.card_plan_id,re.change_type,2 as rangetype,count(re.member_id) members
-		from(
-			select *,row_number() over (partition by r.card_plan_id,r.member_id order by r.change_time) as num
-			from(
-				select t.card_plan_id,t.member_id,t.change_type,t.change_time
-					from dw_business.b_member_grade_change t
-				where t.part >= ${hiveconf:weekfirst}
-					and substr(t.change_time,1,10) >= ${hiveconf:weekfirst}
-					and (t.change_type = 'UP' or t.change_type = 'DOWN')
-			) r
-		) re
-		where re.num=1
-		group by re.card_plan_id,re.change_type
-
-		union all
-		-- 本周指标计算
-		select re.card_plan_id,re.change_type,3 as rangetype,count(re.member_id) members
-		from(
-			select *,row_number() over (partition by r.card_plan_id,r.member_id order by r.change_time) as num
-			from(
-				select t.card_plan_id,t.member_id,t.change_type,t.change_time
-					from dw_business.b_member_grade_change t
-				where t.part >= ${hiveconf:monthfirst}
-					and substr(t.change_time,1,10) >= ${hiveconf:monthfirst}
-					and (t.change_type = 'UP' or t.change_type = 'DOWN')
-			) r
-		) re
-		where re.num=1
-		group by re.card_plan_id,re.change_type
-
-		union all
-		-- 近7天指标计算
-		select re.card_plan_id,re.change_type,4 as rangetype,count(re.member_id) members
-		from(
-			select *,row_number() over (partition by r.card_plan_id,r.member_id order by r.change_time) as num
-			from(
-				select t.card_plan_id,t.member_id,t.change_type,t.change_time
-					from dw_business.b_member_grade_change t
-				where t.part >= ${hiveconf:last7day}
-					and substr(t.change_time,1,10) >= ${hiveconf:last7day}
-					and (t.change_type = 'UP' or t.change_type = 'DOWN')
-			) r
-		) re
-		where re.num=1
-		group by re.card_plan_id,re.change_type
-
-		union all
-		-- 近30天指标计算
-		select re.card_plan_id,re.change_type,5 as rangetype,count(re.member_id) members
-		from(
-			select *,row_number() over (partition by r.card_plan_id,r.member_id order by r.change_time) as num
-			from(
-				select t.card_plan_id,t.member_id,t.change_type,t.change_time
-					from dw_business.b_member_grade_change t
-				where t.part >= ${hiveconf:last30day}
-					and substr(t.change_time,1,10) >= ${hiveconf:last30day}
-					and (t.change_type = 'UP' or t.change_type = 'DOWN')
-			) r
-		) re
-		where re.num=1
-		group by re.card_plan_id,re.change_type
-	) t1
-) re
-group by re.card_plan_id,re.rangetype;
-
-
--- 将上面几类统计数据进行合并，整理成结果表输出给业务
-
-
-
-
-
+select
+* 
+from dw_business.b_member_grade_change t
+where t.part = '${stat_date}'
 
 
 
