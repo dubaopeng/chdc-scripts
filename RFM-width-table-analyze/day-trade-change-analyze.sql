@@ -251,7 +251,7 @@ from
 		case when lower(a.trade_type) = 'step' then a.pay_time else a.created end as created
 	from dw_base.b_std_trade a
 	where
-	  a.part = substr(add_months('${stat_date}',-24),1,7)
+	  a.part = add_months('${stat_date}',-24)
 	  and (a.created is not null and substr(a.created,1,10) = add_months('${stat_date}',-24))
 	  and a.order_status in ('WAIT_SELLER_SEND_GOODS','SELLER_CONSIGNED_PART','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','TRADE_FINISHED','PAID_FORBID_CONSIGN','ORDER_RECEIVED','TRADE_PAID')
 ) c
@@ -275,7 +275,7 @@ from(
 		case when lower(a.trade_type) = 'step' then a.pay_time else a.created end as created
 	from dw_base.b_std_trade a
 	where
-	  a.part = substr(add_months('${stat_date}',-12),1,7)
+	  a.part = add_months('${stat_date}',-12)
 	  and (a.created is not null and substr(a.created,1,10) = add_months('${stat_date}',-12))
 	  and a.order_status in ('WAIT_SELLER_SEND_GOODS','SELLER_CONSIGNED_PART','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','TRADE_FINISHED','PAID_FORBID_CONSIGN','ORDER_RECEIVED','TRADE_PAID')
 ) c
@@ -328,53 +328,81 @@ group by
 -- 近两年的数据+近一年第一天的数据-近两年第一天的数据
 -- 近一年的数据-近一年第一天的数据
 insert overwrite table dw_rfm.b_qqd_shop_rfm partition(part='${stat_date}')
-select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,
-   t.earliest_time,
-   t.first_buy_time,
-   case when t.first_payment is null then 0 else t.first_payment end as first_payment,
-   t.second_buy_time,
-   case when t.year_payment is null then 0 else t.year_payment end as year_payment,
-   case when t.year_buy_times is null then 0 else t.year_buy_times end as year_buy_times,
-   case when t.year_buy_num is null then 0 else t.year_buy_num end as year_buy_num,
-   t.year_first_time,
-   t.year_last_time,
-   case when t.tyear_payment is null then 0 else t.tyear_payment end as tyear_payment,
-   case when t.tyear_buy_times is null then 0 else t.tyear_buy_times end as tyear_buy_times,
-   case when t.tyear_buy_num is null then 0 else t.tyear_buy_num end as tyear_buy_num,
-   case when t.btyear_payment is null then 0 else t.btyear_payment end as btyear_payment,
-   case when t.btyear_buy_times is null then 0 else t.btyear_buy_times end as btyear_buy_times,
-   case when t.btyear_buy_num is null then 0 else t.btyear_buy_num end as btyear_buy_num,
-   '${stat_date}' as stat_date
-from 
+select
+   cu.tenant,cu.plat_code,cu.uni_shop_id,cu.uni_id,
+   case when rfm.earliest_time is null or rfm.earliest_time > cu.modified then cu.modified else rfm.earliest_time end as earliest_time,
+   rfm.first_buy_time,
+   case when rfm.first_payment is null then 0 else rfm.first_payment end as first_payment,
+   rfm.second_buy_time,
+   case when rfm.year_payment is null then 0 else rfm.year_payment end as year_payment,
+   case when rfm.year_buy_times is null then 0 else rfm.year_buy_times end as year_buy_times,
+   case when rfm.year_buy_num is null then 0 else rfm.year_buy_num end as year_buy_num,
+   rfm.year_first_time,
+   rfm.year_last_time,
+   case when rfm.tyear_payment is null then 0 else rfm.tyear_payment end as tyear_payment,
+   case when rfm.tyear_buy_times is null then 0 else rfm.tyear_buy_times end as tyear_buy_times,
+   case when rfm.tyear_buy_num is null then 0 else rfm.tyear_buy_num end as tyear_buy_num,
+   case when rfm.btyear_payment is null then 0 else rfm.btyear_payment end as btyear_payment,
+   case when rfm.btyear_buy_times is null then 0 else rfm.btyear_buy_times end as btyear_buy_times,
+   case when rfm.btyear_buy_num is null then 0 else rfm.btyear_buy_num end as btyear_buy_num,
+   '${stat_date}' as stat_date from
 (
-	select a.tenant,a.plat_code,a.uni_shop_id,a.uni_id,
-		a.earliest_time,
-		a.first_buy_time,
-		a.first_payment,
-		a.second_buy_time,
-		
-		(a.year_payment- if(c.year_payment is null,0,c.year_payment)) as year_payment,
-		(a.year_buy_times- if(c.year_buy_times is null,0,c.year_buy_times)) as year_buy_times,
-		(a.year_buy_num- if(c.year_buy_num is null,0,c.year_buy_num)) as year_buy_num,
-		
-		case when c.year_first_time is null then a.year_first_time else c.year_first_time end as year_first_time,
-		case when a.year_last_time is null or a.year_last_time < c.last_buy_time then c.last_buy_time else a.year_last_time end as year_last_time,
-		
-		(a.tyear_payment- if(b.tyear_payment is null,0,b.tyear_payment) + if(c.year_payment is null,0,c.year_payment)) as tyear_payment,
-		(a.tyear_buy_times- if(b.tyear_buy_times is null,0,b.tyear_buy_times) + if(c.year_buy_times is null,0,c.year_buy_times)) as tyear_buy_times,
-		(a.tyear_buy_num- if(b.tyear_buy_num is null,0,b.tyear_buy_num) + if(c.year_buy_num is null,0,c.year_buy_num)) as tyear_buy_num,
-		
-		(a.btyear_payment+ if(b.tyear_payment is null,0,b.tyear_payment)) as btyear_payment,
-		(a.btyear_buy_times+ if(b.tyear_buy_times is null,0,b.tyear_buy_times)) as btyear_buy_times,
-		(a.btyear_buy_num+ if(b.tyear_buy_num is null,0,b.tyear_buy_num)) as btyear_buy_num
-	from(
-		select * from dw_rfm.b_qqd_shop_rfm where part= date_sub('${stat_date}',1)
-	) a
-	left join dw_rfm.b_last_tyear_first_day_statics_temp b
-	on a.tenant=b.tenant and a.plat_code = b.plat_code and a.uni_shop_id = b.uni_shop_id and a.uni_id = b.uni_id
-	left join dw_rfm.b_last_year_first_day_statics_temp c
-	on a.tenant=c.tenant and a.plat_code = c.plat_code and a.uni_shop_id = c.uni_shop_id and a.uni_id = c.uni_id
-) t;
+	select c1.tenant,c2.plat_code,c2.uni_shop_id,c1.uni_id,c1.modified from dw_base.b_std_customer c1
+	left join dw_base.b_std_shop_customer_rel c2
+	on c1.uni_id = c2.uni_id
+	where c2.plat_code is not null
+) cu
+left join
+(
+	select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,
+	   t.earliest_time,
+	   t.first_buy_time,
+	   case when t.first_payment is null then 0 else t.first_payment end as first_payment,
+	   t.second_buy_time,
+	   case when t.year_payment is null then 0 else t.year_payment end as year_payment,
+	   case when t.year_buy_times is null then 0 else t.year_buy_times end as year_buy_times,
+	   case when t.year_buy_num is null then 0 else t.year_buy_num end as year_buy_num,
+	   t.year_first_time,
+	   t.year_last_time,
+	   case when t.tyear_payment is null then 0 else t.tyear_payment end as tyear_payment,
+	   case when t.tyear_buy_times is null then 0 else t.tyear_buy_times end as tyear_buy_times,
+	   case when t.tyear_buy_num is null then 0 else t.tyear_buy_num end as tyear_buy_num,
+	   case when t.btyear_payment is null then 0 else t.btyear_payment end as btyear_payment,
+	   case when t.btyear_buy_times is null then 0 else t.btyear_buy_times end as btyear_buy_times,
+	   case when t.btyear_buy_num is null then 0 else t.btyear_buy_num end as btyear_buy_num
+	from 
+	(
+		select a.tenant,a.plat_code,a.uni_shop_id,a.uni_id,
+			a.earliest_time,
+			a.first_buy_time,
+			a.first_payment,
+			a.second_buy_time,
+			
+			(a.year_payment- if(c.year_payment is null,0,c.year_payment)) as year_payment,
+			(a.year_buy_times- if(c.year_buy_times is null,0,c.year_buy_times)) as year_buy_times,
+			(a.year_buy_num- if(c.year_buy_num is null,0,c.year_buy_num)) as year_buy_num,
+			
+			case when c.first_buy_time is null then a.year_first_time else c.first_buy_time end as year_first_time,
+			case when a.year_last_time is null or a.year_last_time < c.last_buy_time then c.last_buy_time else a.year_last_time end as year_last_time,
+			
+			(a.tyear_payment- if(b.tyear_payment is null,0,b.tyear_payment) + if(c.year_payment is null,0,c.year_payment)) as tyear_payment,
+			(a.tyear_buy_times- if(b.tyear_buy_times is null,0,b.tyear_buy_times) + if(c.year_buy_times is null,0,c.year_buy_times)) as tyear_buy_times,
+			(a.tyear_buy_num- if(b.tyear_buy_num is null,0,b.tyear_buy_num) + if(c.year_buy_num is null,0,c.year_buy_num)) as tyear_buy_num,
+			
+			(a.btyear_payment+ if(b.tyear_payment is null,0,b.tyear_payment)) as btyear_payment,
+			(a.btyear_buy_times+ if(b.tyear_buy_times is null,0,b.tyear_buy_times)) as btyear_buy_times,
+			(a.btyear_buy_num+ if(b.tyear_buy_num is null,0,b.tyear_buy_num)) as btyear_buy_num
+		from(
+			select * from dw_rfm.b_qqd_shop_rfm where part= date_sub('${stat_date}',1)
+		) a
+		left join dw_rfm.b_last_tyear_first_day_statics_temp b
+		on a.tenant=b.tenant and a.plat_code = b.plat_code and a.uni_shop_id = b.uni_shop_id and a.uni_id = b.uni_id
+		left join dw_rfm.b_last_year_first_day_statics_temp c
+		on a.tenant=c.tenant and a.plat_code = c.plat_code and a.uni_shop_id = c.uni_shop_id and a.uni_id = c.uni_id
+	) t
+) rfm
+on cu.tenant= rfm.tenant and cu.plat_code = rfm.plat_code and cu.uni_shop_id = rfm.uni_shop_id and cu.uni_id = rfm.uni_id;
+
 
 -- 今日增量数据中与昨日RFM数据对相同用户进行合并，做为今日发生变化的RFM数据
 drop table if exists dw_rfm.b_today_rfm_base;
@@ -505,8 +533,7 @@ select r.tenant,r.plat_code,r.uni_id,
 	  concat_ws('',collect_set(r.first_payment)) first_payment,
 	  case when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) =0 then NULL 
 	  when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) >0 then concat_ws('',collect_set(r.second_buy_time_mid))
-	  when concat_ws('',collect_set(r.second_buy_time)) < concat_ws('',collect_set(r.second_buy_time_mid)) then concat_ws('',collect_set(r.second_buy_time))
-	  else NULL end as second_buy_time
+	  else concat_ws('',collect_set(r.second_buy_time)) end as second_buy_time
 from(
 	select t.tenant,t.plat_code,t.uni_id,
 	   case t.rank when 1 then t.first_buy_time else '' end as first_buy_time,
@@ -585,8 +612,7 @@ select r.tenant,r.uni_id,
 	  concat_ws('',collect_set(r.first_payment)) first_payment,
 	  case when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) =0 then NULL 
 	  when length(concat_ws('',collect_set(r.second_buy_time))) =0 and length(concat_ws('',collect_set(r.second_buy_time_mid))) >0 then concat_ws('',collect_set(r.second_buy_time_mid))
-	  when concat_ws('',collect_set(r.second_buy_time)) < concat_ws('',collect_set(r.second_buy_time_mid)) then concat_ws('',collect_set(r.second_buy_time))
-	  else NULL end as second_buy_time
+	  else concat_ws('',collect_set(r.second_buy_time)) end as second_buy_time
 from(
 	select t.tenant,t.uni_id,
 	   case t.rank when 1 then t.first_buy_time else '' end as first_buy_time,
