@@ -47,7 +47,7 @@ set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 insert into table dw_rfm.cix_online_customer_retention_analyze
 select r.tenant,null as plat_code,null as uni_shop_id,null as shop_name,
     sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num,
-    case sum(r.prev_year_num) when 0 then 0 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
+    case sum(r.prev_year_num) when 0 then -1 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
     1 as type,
 	${hiveconf:isMonthEnd} as end_month,
 	'${stat_date}' as stat_date,
@@ -65,7 +65,7 @@ union all
 -- 平台级客户保持率计算
 select r.tenant,r.plat_code,null as uni_shop_id,null as shop_name,
     sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num,
-    case sum(r.prev_year_num) when 0 then 0 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
+    case sum(r.prev_year_num) when 0 then -1 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
     2 as type,
     ${hiveconf:isMonthEnd} as end_month,
 	'${stat_date}' as stat_date,
@@ -83,7 +83,7 @@ union all
 -- 店铺级客户保持率计算
 select re.tenant,re.plat_code,re.uni_shop_id,dp.shop_name,
 	re.prev_year_num,re.last_year_num,
-	case re.prev_year_num when 0 then 0 else re.last_year_num/re.prev_year_num end as rate,
+	case re.prev_year_num when 0 then -1 else re.last_year_num/re.prev_year_num end as rate,
 	3 as type,
 	${hiveconf:isMonthEnd} as end_month,
 	'${stat_date}' as stat_date,

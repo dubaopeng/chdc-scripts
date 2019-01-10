@@ -60,7 +60,7 @@ set pre13MonthEnd=add_months(${hiveconf:pre1MonthEnd},-12);
 insert overwrite table dw_rfm.customer_retention_analyze_history
 select r.tenant,null as plat_code,null as uni_shop_id,null as shop_name,
     sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num,
-    case sum(r.prev_year_num) when 0 then 0 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
+    case sum(r.prev_year_num) when 0 then -1 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
     1 as type,
 	1 as end_month,
 	r.stat_date,
@@ -81,7 +81,7 @@ group by r.tenant,r.stat_date;
 insert into table dw_rfm.customer_retention_analyze_history
 select r.tenant,r.plat_code,null as uni_shop_id,null as shop_name,
     sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num,
-    case sum(r.prev_year_num) when 0 then 0 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
+    case sum(r.prev_year_num) when 0 then -1 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
     2 as type,
     1 as end_month,
 	r.stat_date,
@@ -101,7 +101,7 @@ group by r.tenant,r.plat_code,r.stat_date;
 insert into table dw_rfm.customer_retention_analyze_history
 select re.tenant,re.plat_code,re.uni_shop_id,dp.shop_name,
 	re.prev_year_num,re.last_year_num,
-	case re.prev_year_num when 0 then 0 else re.last_year_num/re.prev_year_num end as rate,
+	case re.prev_year_num when 0 then -1 else re.last_year_num/re.prev_year_num end as rate,
 	3 as type,
 	1 as end_month,
 	re.stat_date,
