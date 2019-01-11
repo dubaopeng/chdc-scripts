@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_customer_assets_view`(
     `silent_num` bigint,
 	`loss_num` bigint,
     `whole_num` bigint, 
-    `type` string,
+    `type` int,
 	`end_month` int,
 	`stat_date` string,
 	`modified` string
@@ -122,7 +122,7 @@ from (
 	c.whole,
 	3 as type
 	from (
-	select b.tenant,b.plat_code,b.uni_shop_id,
+		select b.tenant,b.plat_code,b.uni_shop_id,
 		  cast(concat_ws('',collect_set(if(b.type='prospective',b.num,''))) as bigint) prospective,
 		  cast(concat_ws('',collect_set(if(b.type='active',b.num,''))) as bigint) active,
 		  cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) silent,

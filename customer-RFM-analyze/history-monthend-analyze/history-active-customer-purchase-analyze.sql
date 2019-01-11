@@ -117,7 +117,7 @@ from(
 	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
-		and t.first_buy_time > add_months(t.stat_date,-12)
+		and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
 		and t.second_buy_time is not null
 		and t.year_buy_times > 1
 	group by t.tenant,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
@@ -132,7 +132,7 @@ from(
 	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
-		and t.first_buy_time > add_months(t.stat_date,-12)
+		and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
 		and t.second_buy_time is not null
 		and t.year_buy_times > 1
 	group by t.tenant,t.plat_code,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
@@ -147,7 +147,7 @@ from(
 	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
-		and t.first_buy_time > add_months(t.stat_date,-12)
+		and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
 		and t.second_buy_time is not null
 		and t.year_buy_times > 1
 	group by t.tenant,t.plat_code,t.uni_shop_id,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
