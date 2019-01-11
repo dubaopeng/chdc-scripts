@@ -29,223 +29,61 @@ set hive.support.concurrency=false;
 
 set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 
+-- 1、以客户信息关联会员信息，如果客户有会员信息，那么客户就是会员，否则是非会员
+-- 计算出会员和店铺客户的信息
 
--- 1、获取会员信息及其关联的客户Id
-
-select c.card_plan_id,c.plat_code,c.uni_shop_id,c.uni_id,c.grade,
-	d.earliest_time,d.first_buy_time,d.year_buy_times,d.tyear_buy_times,d.btyear_buy_times
-from (
-	select r.card_plan_id,r.member_id,r.grade,r.plat_code,r.shop_id,r1.uni_id,
-		concat(r.plat_code,'|',r.shop_id) as uni_shop_id 
+-- 今天店铺级的所有客户RFM数据与当天的会员信息进行关联，算出RFM是会员的数据
+-- 给数据进行打标，识别出潜客，沉默客，流失客等
+drop table if exists dw_rfm.b_customer_member_rfm_temp;
+create table dw_rfm.b_customer_member_rfm_temp as
+select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,t.ismember,t.card_plan_id,t.member_id,t.grade,
+case when (t.earliest_time <= '${stat_date}' and t.first_buy_time is null) or t.first_buy_time > '${stat_date}' then 'qianke'
+when t.year_buy_times = 1 and t.first_buy_time > add_months('${stat_date}',-12) then 'active_new'
+when t.year_buy_times >= 2 and t.first_buy_time > add_months('${stat_date}',-12) then 'phurce_new'
+when t.year_buy_times = 1 and t.first_buy_time <= add_months('${stat_date}',-12) then 'active_old'
+when t.year_buy_times >= 2 and t.first_buy_time <= add_months('${stat_date}',-12) then 'phurce_old'
+when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
+when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as custype
+from
+(
+	select rfm.tenant,rfm.plat_code,rfm.uni_shop_id,rfm.uni_id,
+		   rfm.earliest_time,rfm.first_buy_time,rfm.year_buy_times,
+		   rfm.tyear_buy_times,rfm.btyear_buy_times
+		   case when m.card_plan_id is null then -1 else 0 end as ismember,
+		   m.card_plan_id,m.member_id,m.grade
 	from(
-		select t.card_plan_id,t.member_id,t.grade,t1.plat_code,t1.shop_id
-		from (
-			select a.card_plan_id,a.member_id,a.grade
-			from  dw_business.b_std_member_base_info a
-			where substr(a.created,1,10) <= '${stat_date}' 
-		) t
-		join 
-		dw_business.b_card_shop_rel t1
-		on t.card_plan_id = t1.card_plan_id
-	) r
-	join dw_business.b_customer_member_relation r1
-	on r.card_plan_id = r1.card_plan_id and r.member_id=r1.member_id
-) c
-right join dw_rfm.b_qqd_shop_rfm d
-on c.plat_code=d.plat_code and c.uni_shop_id=d.uni_shop_id and c.uni_id=d.uni_id;
+		select * from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
+	) rfm
+	left join 
+	(
+		select r.card_plan_id,r.member_id,r.grade,r.plat_code,r.shop_id,r1.uni_id,
+			concat(r.plat_code,'|',r.shop_id) as uni_shop_id 
+		from(
+			select t.card_plan_id,t.member_id,t.grade,t1.plat_code,t1.shop_id
+			from (
+				select a.card_plan_id,a.member_id,a.grade
+				from  dw_business.b_std_member_base_info a
+				where substr(a.created,1,10) <= '${stat_date}' 
+			) t
+			join 
+			dw_business.b_card_shop_rel t1
+			on t.card_plan_id = t1.card_plan_id
+		) r
+		join dw_business.b_customer_member_relation r1
+		on r.card_plan_id = r1.card_plan_id and r.member_id=r1.member_id
+	) m
+	on rfm.plat_code = m.plat_code and rfm.uni_shop_id = m.uni_shop_id and rfm.uni_id = m.uni_id
+);
+
+-- 基于上面的数据进行各类数据与等级的分析，然后合并各个数据维度的统计结果即可
+
+-- grade + custype
+-- grade 
+-- custype 
 
 
--- 2、与RFM宽表进行关联
 
 
-select * from dw_rfm.b_qqd_shop_rfm
-left join 
-
-
-
-
-
---创建积分变更临时表
-CREATE TABLE IF NOT EXISTS dw_rfm.`b_point_change_analyze_temp`(
-	`card_plan_id` string,
-	`member_id` string,
-	`change_value` bigint,
-	`type` int,
-	`yestoday` int,
-	`thisweek` int,
-	`thismonth` int,
-	`last7day` int,
-	`last30day` int
-)
-ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
-STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
-
--- 近30天有积分变化的数据，中间包含昨天，本周、本月、近7天
-insert overwrite table dw_rfm.b_point_change_analyze_temp
-select card_plan_id,member_id,change_value,
-	case when change_value >= 0 then 1 else -1 end as type,
-	case when substr(change_time,1,10) >= ${hiveconf:yestoday} then 1 else 0 end as yestoday,
-	case when substr(change_time,1,10) >= ${hiveconf:weekfirst} then 1 else 0 end as thisweek,
-	case when substr(change_time,1,10) >= ${hiveconf:monthfirst} then 1 else 0 end as thismonth,
-	case when substr(change_time,1,10) >= ${hiveconf:last7day} then 1 else 0 end as last7day,
-	case when substr(change_time,1,10) >= ${hiveconf:last30day} then 1 else 0 end as last30day
-from dw_business.b_member_point_change
-where part >= ${hiveconf:last30day} and part <= '${stat_date}'
-and substr(change_time,1,10) >= ${hiveconf:last30day} and substr(change_time,1,10)<='${stat_date}';
-
--- 计算每个时间段内有积分变动的会员数
-drop table if exists dw_rfm.b_point_change_members_temp;
-create table dw_rfm.b_point_change_members_temp as
-select card_plan_id,1 as rangetype,count(distinct member_id) as members
-from dw_rfm.b_point_change_analyze_temp
-where yestoday=1 group by card_plan_id
-union all
-select card_plan_id,2 as rangetype,count(distinct member_id) as members
-from dw_rfm.b_point_change_analyze_temp
-where thisweek=1 group by card_plan_id
-union all
-select card_plan_id,3 as rangetype,count(distinct member_id) as members
-from dw_rfm.b_point_change_analyze_temp
-where thismonth=1
-group by card_plan_id
-union all
-select card_plan_id,4 as rangetype,count(distinct member_id) as members
-from dw_rfm.b_point_change_analyze_temp
-where last7day=1
-group by card_plan_id
-union all
-select card_plan_id,5 as rangetype,count(distinct member_id) as members
-from dw_rfm.b_point_change_analyze_temp
-where last30day=1
-group by card_plan_id;
-
-
--- 计算发放和消耗的积分 type=1 发放 type=-1 消耗
-drop table if exists dw_rfm.b_point_change_total_temp;
-create table dw_rfm.b_point_change_total_temp as
-	select card_plan_id,type,1 as rangetype,
-	case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
-	from dw_rfm.b_point_change_analyze_temp
-	where yestoday=1 group by card_plan_id,type
-union all
-	select card_plan_id,type,2 as rangetype,
-	case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
-	from dw_rfm.b_point_change_analyze_temp
-	where thisweek=1 group by card_plan_id,type
-union all
-	select card_plan_id,type,3 as rangetype,
-	case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
-	from dw_rfm.b_point_change_analyze_temp
-	where thismonth=1 group by card_plan_id,type
-union all
-	select card_plan_id,type,4 as rangetype,
-	case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
-	from dw_rfm.b_point_change_analyze_temp
-	where last7day=1 group by card_plan_id,type
-union all
-	select card_plan_id,type,5 as rangetype,
-	case when type=1 then sum(change_value) else abs(sum(change_value)) end as totalpoint
-	from dw_rfm.b_point_change_analyze_temp
-	where last30day=1 group by card_plan_id,type;
-
-
--- 计算积分失效和当前有效积分
--- 积分失效：积分到期日期在统计周期内的积分
--- 有效积分存量：截至“数据截至日期”时有效积分
-
--- 近30天失效的积分计算
-drop table if exists dw_rfm.b_invalid_points_last30day;
-create table dw_rfm.b_invalid_points_last30day as
-select card_plan_id,point,
-	case when substr(overdue_date,1,10) >= ${hiveconf:yestoday} then 1 else 0 end as yestoday,
-	case when substr(overdue_date,1,10) >= ${hiveconf:weekfirst} then 1 else 0 end as thisweek,
-	case when substr(overdue_date,1,10) >= ${hiveconf:monthfirst} then 1 else 0 end as thismonth,
-	case when substr(overdue_date,1,10) >= ${hiveconf:last7day} then 1 else 0 end as last7day,
-	case when substr(overdue_date,1,10) >= ${hiveconf:last30day} then 1 else 0 end as last30day
-from dw_business.b_member_efffect_point
-where substr(overdue_date,1,10) <= '${stat_date}'
-and substr(overdue_date,1,10) >= ${hiveconf:last30day}
-and valid=0;
-
--- 几个时间段的过期积分总数
-drop table if exists dw_rfm.b_invalid_points_statics_temp;
-create table dw_rfm.b_invalid_points_statics_temp as 
-select card_plan_id,1 as rangetype,sum(point) as overdue_points
-	from dw_rfm.b_invalid_points_last30day
-	where yestoday=1 group by card_plan_id
-union all
-	select card_plan_id,2 as rangetype,sum(point) as overdue_points
-	from dw_rfm.b_invalid_points_last30day
-	where thisweek=1 group by card_plan_id
-union all
-	select card_plan_id,3 as rangetype,sum(point) as overdue_points
-	from dw_rfm.b_invalid_points_last30day
-	where thismonth=1 group by card_plan_id
-union all
-	select card_plan_id,4 as rangetype,sum(point) as overdue_points
-	from dw_rfm.b_invalid_points_last30day
-	where last7day=1 group by card_plan_id
-union all
-	select card_plan_id,5 as rangetype,sum(point) as overdue_points
-	from dw_rfm.b_invalid_points_last30day
-	where last30day=1 group by card_plan_id;
-
--- 删除掉近30天的过期积分的统计
-drop table if exists dw_rfm.b_invalid_points_last30day;
-
-
--- 积分存量存在疑问
-select
-from dw_business.b_member_efffect_point
-where substr(effective_date,1,10) >= '${stat_date}'
-and valid=1;
-
-
--- 从会员基本信息中查询新增的会员
-drop table if exists dw_rfm.b_new_member_last30day_temp;
-create table dw_rfm.b_new_member_last30day_temp as
-select card_plan_id,member_id,
-	case when substr(created,1,10) >= ${hiveconf:yestoday} then 1 else 0 end as yestoday,
-	case when substr(created,1,10) >= ${hiveconf:weekfirst} then 1 else 0 end as thisweek,
-	case when substr(created,1,10) >= ${hiveconf:monthfirst} then 1 else 0 end as thismonth,
-	case when substr(created,1,10) >= ${hiveconf:last7day} then 1 else 0 end as last7day,
-	case when substr(created,1,10) >= ${hiveconf:last30day} then 1 else 0 end as last30day
-from dw_business.b_std_member_base_info
-where substr(created,1,10) >= ${hiveconf:last30day};
-
--- 各时间段新增会员的统计结果
-drop table if exists dw_rfm.b_new_member_statics_temp;
-create table dw_rfm.b_new_member_statics_temp as 
-select card_plan_id,1 as rangetype,count(member_id) as newmembers
-	from dw_rfm.b_new_member_last30day_temp
-	where yestoday=1 group by card_plan_id
-union all
-	select card_plan_id,2 as rangetype,count(member_id) as newmembers
-	from dw_rfm.b_new_member_last30day_temp
-	where thisweek=1 group by card_plan_id
-union all
-	select card_plan_id,3 as rangetype,count(member_id) as newmembers
-	from dw_rfm.b_new_member_last30day_temp
-	where thismonth=1 group by card_plan_id
-union all
-	select card_plan_id,4 as rangetype,count(member_id) as newmembers
-	from dw_rfm.b_new_member_last30day_temp
-	where last7day=1 group by card_plan_id
-union all
-	select card_plan_id,5 as rangetype,count(member_id) as newmembers
-	from dw_rfm.b_new_member_last30day_temp
-	where last30day=1 group by card_plan_id;
-
--- 删除临时近30天的会员临时表
-drop table if exists dw_rfm.b_new_member_last30day_temp;
-
-
--- 计算会员等级变更数量
-
-select
-* 
-from dw_business.b_member_grade_change t
-where t.part = '${stat_date}'
 
 
 

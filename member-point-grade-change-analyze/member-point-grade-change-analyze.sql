@@ -1,4 +1,4 @@
-SET mapred.job.name='member-point-grade-change 会员积分等级变更分析';
+SET mapred.job.name='member-point-grade-change-会员积分等级变更分析';
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -18,8 +18,6 @@ set hive.merge.mapfiles = true;
 set hive.merge.mapredfiles=true;
 set hive.merge.size.per.task = 512000000;
 set hive.support.concurrency=false;
-
--- 历史订单类目统计
 
 -- 会员基本信息：dw_business.b_std_member_base_info
 -- 有效积分：dw_business.b_member_efffect_point
@@ -182,10 +180,11 @@ drop table if exists dw_rfm.b_invalid_points_last30day;
 drop table if exists dw_rfm.b_current_effect_points_temp;
 create table dw_rfm.b_current_effect_points_temp as
 select card_plan_id,sum(point) effect_points
-from dw_business.b_member_efffect_point
-where substr(effective_date,1,10) <= '${stat_date}'
-and substr(overdue_date,1,10) > '${stat_date}'
-and valid=1;
+	from dw_business.b_member_efffect_point
+	where substr(effective_date,1,10) <= '${stat_date}'
+	and substr(overdue_date,1,10) > '${stat_date}'
+	and valid=1
+	group by card_plan_id;
 
 
 -- 从会员基本信息中查询新增的会员
@@ -359,7 +358,7 @@ from
 		from 
 		(	
 			--获取所有卡
-			select card_plan_id from dw_business.b_std_member_base_info group by card_plan_id;
+			select card_plan_id from dw_business.b_std_member_base_info group by card_plan_id
 		) a
 		left join dw_rfm.b_current_effect_points_temp b
 		on a.card_plan_id=b.card_plan_id
@@ -386,7 +385,7 @@ on t.card_plan_id = g.card_plan_id and t.rangetype=g.rangetype;
 -- 1、计算昨天 oldgrade=-1标识非会员
 drop table if exists dw_rfm.b_yestoday_member_grade_change_temp;
 create table dw_rfm.b_yestoday_member_grade_change_temp as
-select re.card_plan_id,re.nowgrade,oldgrade,count(re.member_id) members
+select re.card_plan_id,re.nowgrade,re.oldgrade,count(re.member_id) members
 from (
 	select t.card_plan_id,t.member_id,t.grade as nowgrade,
 		case when t.member_type=-1 then -1 --非会员
@@ -402,13 +401,13 @@ from (
 		select r1.card_plan_id,r1.member_id,r1.grade_before_change as oldgrade from (
 			select card_plan_id,member_id,grade_before_change,row_number() over (partition by card_plan_id,member_id order by change_time asc) as rank 
 			from dw_business.b_member_grade_change
-			where part = {hiveconf:yestoday} and substr(change_time,1,10) = {hiveconf:yestoday}
+			where part = ${hiveconf:yestoday} and substr(change_time,1,10) = ${hiveconf:yestoday}
 		) r1
 		where r1.rank=1
 	) t1
 	on t.card_plan_id=t1.card_plan_id and t.member_id=t1.member_id
 ) re
-group by re.card_plan_id,re.nowgrade,oldgrade;
+group by re.card_plan_id,re.nowgrade,re.oldgrade;
 
 -- 增加列合计计算
 insert overwrite table dw_rfm.b_yestoday_member_grade_change_temp
@@ -428,7 +427,7 @@ group by r1.card_plan_id,r1.oldgrade;
 -- 本周等级变化
 drop table if exists dw_rfm.b_thisweek_member_grade_change_temp;
 create table dw_rfm.b_thisweek_member_grade_change_temp as
-select re.card_plan_id,re.nowgrade,oldgrade,count(re.member_id) members
+select re.card_plan_id,re.nowgrade,re.oldgrade,count(re.member_id) members
 from (
 	select t.card_plan_id,t.member_id,t.grade as nowgrade,
 		case when t.member_type=-1 then -1 --非会员
@@ -444,13 +443,13 @@ from (
 		select r1.card_plan_id,r1.member_id,r1.grade_before_change as oldgrade from (
 			select card_plan_id,member_id,grade_before_change,row_number() over (partition by card_plan_id,member_id order by change_time asc) as rank 
 			from dw_business.b_member_grade_change
-			where part >= {hiveconf:weekfirst} and substr(change_time,1,10) >= {hiveconf:weekfirst}
+			where part >= ${hiveconf:weekfirst} and substr(change_time,1,10) >= ${hiveconf:weekfirst}
 		) r1
 		where r1.rank=1
 	) t1
 	on t.card_plan_id=t1.card_plan_id and t.member_id=t1.member_id
 ) re
-group by re.card_plan_id,re.nowgrade,oldgrade;
+group by re.card_plan_id,re.nowgrade,re.oldgrade;
 
 -- 增加列合计计算
 insert overwrite table dw_rfm.b_thisweek_member_grade_change_temp
@@ -469,7 +468,7 @@ group by r1.card_plan_id,r1.oldgrade;
 -- 本月等级变化
 drop table if exists dw_rfm.b_thismonth_member_grade_change_temp;
 create table dw_rfm.b_thismonth_member_grade_change_temp as
-select re.card_plan_id,re.nowgrade,oldgrade,count(re.member_id) members
+select re.card_plan_id,re.nowgrade,re.oldgrade,count(re.member_id) members
 from (
 	select t.card_plan_id,t.member_id,t.grade as nowgrade,
 		case when t.member_type=-1 then -1 --非会员
@@ -482,16 +481,17 @@ from (
 	) t
 	left join 
 	(
-		select r1.card_plan_id,r1.member_id,r1.grade_before_change as oldgrade from (
+		select r1.card_plan_id,r1.member_id,r1.grade_before_change as oldgrade 
+		from (
 			select card_plan_id,member_id,grade_before_change,row_number() over (partition by card_plan_id,member_id order by change_time asc) as rank 
 			from dw_business.b_member_grade_change
-			where part >= {hiveconf:monthfirst} and substr(change_time,1,10) >= {hiveconf:monthfirst}
+			where part >= ${hiveconf:monthfirst} and substr(change_time,1,10) >= ${hiveconf:monthfirst}
 		) r1
 		where r1.rank=1
 	) t1
 	on t.card_plan_id=t1.card_plan_id and t.member_id=t1.member_id
 ) re
-group by re.card_plan_id,re.nowgrade,oldgrade;
+group by re.card_plan_id,re.nowgrade,re.oldgrade;
 
 -- 增加列合计计算
 insert overwrite table dw_rfm.b_thismonth_member_grade_change_temp
@@ -510,7 +510,7 @@ group by r1.card_plan_id,r1.oldgrade;
 -- 近7天等级变化
 drop table if exists dw_rfm.b_last7day_member_grade_change_temp;
 create table dw_rfm.b_last7day_member_grade_change_temp as
-select re.card_plan_id,re.nowgrade,oldgrade,count(re.member_id) members
+select re.card_plan_id,re.nowgrade,re.oldgrade,count(re.member_id) members
 from (
 	select t.card_plan_id,t.member_id,t.grade as nowgrade,
 		case when t.member_type=-1 then -1 --非会员
@@ -523,16 +523,17 @@ from (
 	) t
 	left join 
 	(
-		select r1.card_plan_id,r1.member_id,r1.grade_before_change as oldgrade from (
+		select r1.card_plan_id,r1.member_id,r1.grade_before_change as oldgrade 
+		from (
 			select card_plan_id,member_id,grade_before_change,row_number() over (partition by card_plan_id,member_id order by change_time asc) as rank 
 			from dw_business.b_member_grade_change
-			where part >= {hiveconf:last7day} and substr(change_time,1,10) >= {hiveconf:last7day}
+			where part >= ${hiveconf:last7day} and substr(change_time,1,10) >= ${hiveconf:last7day}
 		) r1
 		where r1.rank=1
 	) t1
 	on t.card_plan_id=t1.card_plan_id and t.member_id=t1.member_id
 ) re
-group by re.card_plan_id,re.nowgrade,oldgrade;
+group by re.card_plan_id,re.nowgrade,re.oldgrade;
 
 -- 增加列合计计算
 insert overwrite table dw_rfm.b_last7day_member_grade_change_temp
@@ -552,7 +553,7 @@ group by r1.card_plan_id,r1.oldgrade;
 -- 近30天等级变化
 drop table if exists dw_rfm.b_last30day_member_grade_change_temp;
 create table dw_rfm.b_last30day_member_grade_change_temp as
-select re.card_plan_id,re.nowgrade,oldgrade,count(re.member_id) members
+select re.card_plan_id,re.nowgrade,re.oldgrade,count(re.member_id) members
 from (
 	select t.card_plan_id,t.member_id,t.grade as nowgrade,
 		case when t.member_type=-1 then -1 --非会员
@@ -565,16 +566,17 @@ from (
 	) t
 	left join 
 	(
-		select r1.card_plan_id,r1.member_id,r1.grade_before_change as oldgrade from (
+		select r1.card_plan_id,r1.member_id,r1.grade_before_change as oldgrade 
+		from (
 			select card_plan_id,member_id,grade_before_change,row_number() over (partition by card_plan_id,member_id order by change_time asc) as rank 
 			from dw_business.b_member_grade_change
-			where part >= {hiveconf:last30day} and substr(change_time,1,10) >= {hiveconf:last30day}
+			where part >= ${hiveconf:last30day} and substr(change_time,1,10) >= ${hiveconf:last30day}
 		) r1
 		where r1.rank=1
 	) t1
 	on t.card_plan_id=t1.card_plan_id and t.member_id=t1.member_id
 ) re
-group by re.card_plan_id,re.nowgrade,oldgrade;
+group by re.card_plan_id,re.nowgrade,re.oldgrade;
 
 -- 增加列合计计算
 insert overwrite table dw_rfm.b_last30day_member_grade_change_temp
@@ -593,7 +595,7 @@ group by r1.card_plan_id,r1.oldgrade;
 
 -- 对上面几个时间段的数据进行合并，生成最终的等级变化表,输出给业务端
 CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_member_grade_transform`(
-	`card_plan_id`
+	`card_plan_id` string,
 	`nowgrade` int, -- 现会员等级(99:行合计列,其他为等级数字)
 	`oldgrade` int, -- 前会员等级(-1:非会员 99:列合计,其他为等级数字)
 	`members` bigint, -- 会员人数

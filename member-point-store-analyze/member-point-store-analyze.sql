@@ -1,4 +1,4 @@
-SET mapred.job.name='member-point-store-analyze 积分存量分析';
+SET mapred.job.name='member-point-store-analyze-积分存量分析';
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -21,8 +21,6 @@ set hive.support.concurrency=false;
 
 -- 会员基本信息：dw_business.b_std_member_base_info
 -- 有效积分：dw_business.b_member_efffect_point
--- 等级变更表：dw_business.b_member_grade_change
--- 积分变更表: dw_business.b_member_point_change
 
 set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 
@@ -30,7 +28,6 @@ set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 set pointv1=100;
 set pointv2=200;
 set pointv3=500;
-
 
 CREATE TABLE IF NOT EXISTS dw_rfm.`b_effect_point_base_temp`(
 	`card_plan_id` string,
@@ -88,7 +85,7 @@ where substr(t.effective_date,1,10) <= '${stat_date}'
 	  and t.valid=1;
 
 -- 积分存量MP分析结果，需要同步给业务
-CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_card_store_point`(
+CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_point_store_mp`(
 	`card_plan_id` string,
 	`mptype` int,
 	`interval_type` int,
@@ -101,7 +98,7 @@ partitioned by(`part` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
 STORED AS TEXTFILE;
 
-insert overwrite table dw_rfm.cix_online_card_store_point partition(part='${stat_date}')
+insert overwrite table dw_rfm.cix_online_point_store_mp partition(part='${stat_date}')
 select r1.card_plan_id,r1.mptype,r1.interval_type,r1.members,
 		(r1.members/r.totalmembers) as member_rate,
 		'${stat_date}' as stat_date,
@@ -128,7 +125,32 @@ left join
 on r1.card_plan_id=r.card_plan_id;
 
 
--- 计算积分变化趋势
+-- 有效积分存量变化趋势分析
+-- 由于数据没有历史区分，所以每天统计数据，保留分析结果，一段时间后，会存在趋势图
+CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_point_store_trend`(
+	`card_plan_id` string,
+	`points` bigint,
+	`day` string,
+	`stat_date` string,
+	`modified` string
+)
+partitioned by(`part` string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
+STORED AS TEXTFILE;
+
+insert overwrite table dw_rfm.`cix_online_point_store_trend` partition(part='${stat_date}')
+select t.card_plan_id,
+		sum(t.point) points,
+	   '${stat_date}' as day,
+	   '${stat_date}' as stat_date,
+	   ${hiveconf:submitTime} as modified
+from dw_business.b_member_efffect_point t
+where substr(t.effective_date,1,10) <= '${stat_date}'
+	  and substr(t.overdue_date,1,10) > '${stat_date}'
+	  and t.valid=1
+group by t.card_plan_id;
+
+
 
 
 
