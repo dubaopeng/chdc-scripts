@@ -49,7 +49,7 @@ from
 (
 	select rfm.tenant,rfm.plat_code,rfm.uni_shop_id,rfm.uni_id,
 		   rfm.earliest_time,rfm.first_buy_time,rfm.year_buy_times,
-		   rfm.tyear_buy_times,rfm.btyear_buy_times
+		   rfm.tyear_buy_times,rfm.btyear_buy_times,
 		   case when m.card_plan_id is null then -1 else 0 end as ismember,
 		   m.card_plan_id,m.member_id,m.grade
 	from(
@@ -74,7 +74,7 @@ from
 		on r.card_plan_id = r1.card_plan_id and r.member_id=r1.member_id
 	) m
 	on rfm.plat_code = m.plat_code and rfm.uni_shop_id = m.uni_shop_id and rfm.uni_id = m.uni_id
-);
+) t;
 
 
 -- 会员生命周期类型表定义
