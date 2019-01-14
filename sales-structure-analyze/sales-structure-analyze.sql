@@ -111,7 +111,10 @@ select r1.tenant,r1.plat_code,r1.uni_shop_id,r1.dmonth,
 	   r1.new_avg_price,  --新客客单价
 	   r1.new_avg_times,  --新客平均购买次数
 	   r1.new_repeat_num, --新客复购人数
-	   r1.new_repeat_rate --新客复购率
+	   r1.new_repeat_rate, --新客复购率
+	   r1.new_one_price,  --新客单次购买客单价
+	   r1.new_muti_price, --新客多次购买客单价
+	   r1.new_muti_avg_times --新客多次购买平均购买次数
 from 
 (
 	select t.tenant,t.plat_code,t.uni_shop_id,t.dmonth,
@@ -120,11 +123,18 @@ from
 		sum(t.payments)/sum(t.buy_times) as new_avg_price,--平均客单价
 		sum(t.buy_times)/count(t.uni_id) as new_avg_times, --平均次数
 		sum(t.new_phurase) as new_repeat_num, --新客复购人数
-		(sum(t.new_phurase)/count(t.uni_id)) as new_repeat_rate --新客复购率
+		(sum(t.new_phurase)/count(t.uni_id)) as new_repeat_rate, --新客复购率
+		(sum(t.new_one_payments)/sum(t.new_one_buy_cusnum)) as new_one_price,--新客单次购买客单价
+		(sum(t.new_muti_payments)/sum(t.new_phurase)) as new_muti_price, --新客多次购买客单价
+		(sum(t.new_muti_times)/sum(t.new_phurase)) as new_muti_avg_times --新客多次购买平均购买次数
 	from
 	(
 		select a.tenant,a.plat_code,a.uni_shop_id,a.uni_id,a.dmonth,a.payments,a.buy_times,
-				case when a.buy_times >= 2 then 1 else 0 end as new_phurase
+				case when a.buy_times >= 2 then 1 else 0 end as new_phurase,
+				case when a.buy_times = 1 then 1 else 0 end as new_one_buy_cusnum, --新客单次购买人数
+			    case when a.buy_times = 1 then a.payments else 0 end as new_one_payments, --新客单次购买金额
+			    case when a.buy_times >= 2 then a.payments else 0 end as new_muti_payments,--新客多次购买金额
+			    case when a.buy_times >= 2 then a.buy_times else 0 end as new_muti_times -- 新客多次购买次数
 		from dw_rfm.b_sales_analyze_trade_temp a
 		left join (
 			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time
@@ -151,7 +161,10 @@ select r1.tenant,r1.plat_code,r1.uni_shop_id,r1.dmonth,
 	   r1.old_avg_price,  --回头客客单价
 	   r1.old_avg_times,  --回头客平均购买次数
 	   r1.old_repeat_num, --回头客复购人数
-	   r1.old_repeat_rate --回头客复购率
+	   r1.old_repeat_rate, --回头客复购率
+	   r1.old_one_price,  --回头客单次购买客单价
+	   r1.old_muti_price, --回头客多次购买客单价
+	   r1.old_muti_avg_times --回头客多次购买平均购买次数
 from 
 (
 	select t.tenant,t.plat_code,t.uni_shop_id,t.dmonth,
@@ -160,11 +173,18 @@ from
 		sum(t.payments)/sum(t.buy_times) as old_avg_price,--平均客单价
 		sum(t.buy_times)/count(t.uni_id) as old_avg_times, --平均次数
 		sum(t.old_phurase) as old_repeat_num, --回头客复购人数
-		(sum(t.old_phurase)/count(t.uni_id)) as old_repeat_rate
+		(sum(t.old_phurase)/count(t.uni_id)) as old_repeat_rate,
+		(sum(t.old_one_payments)/sum(t.old_one_buy_cusnum)) as old_one_price,--回头客单次购买客单价
+		(sum(t.old_muti_payments)/sum(t.old_phurase)) as old_muti_price, --回头客多次购买客单价
+		(sum(t.old_muti_times)/sum(t.old_phurase)) as old_muti_avg_times --回头客多次购买平均购买次数
 	from
 	(
 		select a.tenant,a.plat_code,a.uni_shop_id,a.uni_id,a.dmonth,a.payments,a.buy_times,
-			   case when a.buy_times >= 2 then 1 else 0 end as old_phurase
+			   case when a.buy_times >= 2 then 1 else 0 end as old_phurase,
+			   case when a.buy_times = 1 then 1 else 0 end as old_one_buy_cusnum, --回头客单次购买人数
+			   case when a.buy_times = 1 then a.payments else 0 end as old_one_payments, --回头客单次购买金额
+			   case when a.buy_times >= 2 then a.payments else 0 end as old_muti_payments,--回头客多次购买金额
+			   case when a.buy_times >= 2 then a.buy_times else 0 end as old_muti_times -- 回头客多次购买次数
 		from dw_rfm.b_sales_analyze_trade_temp a
 		left join (
 			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time
@@ -198,7 +218,7 @@ create table if not exists dw_rfm.cix_online_sales_structs_month(
 	new_payments_rate double, -- 新客成交金额占比
 	new_avg_price double,  --新客客单价
 	new_avg_times double,  --新客平均购买次数
-	new_repeat_num double, --新客复购人数 TODO
+	new_repeat_num bigint, --新客复购人数
 	new_repeat_rate double, --新客复购率
 	
 	new_one_price double,  --新客单次购买客单价
@@ -211,7 +231,7 @@ create table if not exists dw_rfm.cix_online_sales_structs_month(
 	old_payments_rate double, -- 回头客成交金额占比
 	old_avg_price double,  --回头客客单价
 	old_avg_times double,  --回头客平均购买次数
-	old_repeat_num double, --回头客复购人数 TODO
+	old_repeat_num bigint, --回头客复购人数
 	old_repeat_rate double, --回头客复购率
 	
 	old_one_price double,  --回头客单次购买客单价
@@ -238,9 +258,9 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.dmonth as date_col,
 	   if(a.new_repeat_num is null,0,a.new_repeat_num) as new_repeat_num,
 	   if(a.new_repeat_rate is null,0,a.new_repeat_rate) as new_repeat_rate,
 	   
-	   0 as new_one_price,  --新客单次购买客单价
-	   0 as new_muti_price, --新客多次购买客单价
-	   0 as new_muti_avg_times,
+	   if(a.new_one_price if null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
+	   if(a.new_muti_price if null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
+	   if(a.new_muti_avg_times if null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
 	   
 	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
 	   if(a.old_rate is null,0,a.old_rate) as old_rate,
@@ -251,9 +271,9 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.dmonth as date_col,
 	   if(a.old_repeat_num is null,0,a.old_repeat_num) as old_repeat_num,
 	   if(a.old_repeat_rate is null,0,a.old_repeat_rate) as old_repeat_rate,
 	 
-	   0 as old_one_price,  --新客单次购买客单价
-	   0 as old_muti_price, --新客多次购买客单价
-	   0 as old_muti_avg_times
+	   if(a.old_one_price is null,0,a.old_one_price) as old_one_price,
+	   if(a.old_muti_price is null,0,a.old_muti_price) as old_muti_price,
+	   if(a.old_muti_avg_times is null,0,a.old_muti_avg_times) as old_muti_avg_times,
 	   
 	   3 as type,
 	   '${stat_date}' as stat_date,
@@ -308,7 +328,10 @@ select r1.tenant,r1.plat_code,r1.dmonth,
 	   r1.new_avg_price,  --新客客单价
 	   r1.new_avg_times,  --新客平均购买次数
 	   r1.new_repeat_num, --新客复购人数
-	   r2.new_repeat_rate --新客复购率
+	   r1.new_repeat_rate, --新客复购率
+	   r1.new_one_price,
+	   r1.new_muti_price,
+	   r1.new_muti_avg_times
 from 
 (
 	select t.tenant,t.plat_code,t.dmonth,
@@ -317,11 +340,18 @@ from
 		sum(t.payments)/sum(t.buy_times) as new_avg_price,--平均客单价
 		sum(t.buy_times)/count(t.uni_id) as new_avg_times, --平均次数
 		sum(t.new_phurase) as new_repeat_num, --新客复购人数
-		(sum(t.new_phurase)/count(t.uni_id)) as new_repeat_rate --新客复购率
+		(sum(t.new_phurase)/count(t.uni_id)) as new_repeat_rate, --新客复购率
+		(sum(t.new_one_payments)/sum(t.new_one_buy_cusnum)) as new_one_price,--新客单次购买客单价
+		(sum(t.new_muti_payments)/sum(t.new_phurase)) as new_muti_price, --新客多次购买客单价
+		(sum(t.new_muti_times)/sum(t.new_phurase)) as new_muti_avg_times --新客多次购买平均购买次数
 	from
 	(
 		select a.tenant,a.plat_code,a.uni_id,a.dmonth,a.payments,a.buy_times,
-			    case when a.buy_times >= 2 then 1 else 0 end as new_phurase
+			    case when a.buy_times >= 2 then 1 else 0 end as new_phurase,
+				case when a.buy_times = 1 then 1 else 0 end as new_one_buy_cusnum, --新客单次购买人数
+			    case when a.buy_times = 1 then a.payments else 0 end as new_one_payments, --新客单次购买金额
+			    case when a.buy_times >= 2 then a.payments else 0 end as new_muti_payments,--新客多次购买金额
+			    case when a.buy_times >= 2 then a.buy_times else 0 end as new_muti_times -- 新客多次购买次数
 		from dw_rfm.b_sales_plat_analyze_trade_temp a
 		left join (
 			select tenant,plat_code,uni_id,first_buy_time
@@ -347,7 +377,10 @@ select r1.tenant,r1.plat_code,r1.dmonth,
 	   r1.old_avg_price,  --回头客客单价
 	   r1.old_avg_times,  --回头客平均购买次数
 	   r1.old_repeat_num, --回头客复购人数
-	   r2.old_repeat_rate --回头客复购率
+	   r1.old_repeat_rate, --回头客复购率
+	   r1.old_one_price,
+	   r1.old_muti_price,
+	   r1.old_muti_avg_times
 from 
 (
 	select t.tenant,t.plat_code,t.dmonth,
@@ -356,11 +389,18 @@ from
 		sum(t.payments)/sum(t.buy_times) as old_avg_price,--平均客单价
 		sum(t.buy_times)/count(t.uni_id) as old_avg_times, --平均次数
 		sum(t.old_phurase) as old_repeat_num, --复购客复购人数
-		(sum(t.old_phurase)/count(t.uni_id)) as old_repeat_rate --复购客复购率
+		(sum(t.old_phurase)/count(t.uni_id)) as old_repeat_rate, --复购客复购率
+		(sum(t.old_one_payments)/sum(t.old_one_buy_cusnum)) as old_one_price,--回头客单次购买客单价
+		(sum(t.old_muti_payments)/sum(t.old_phurase)) as old_muti_price, --回头客多次购买客单价
+		(sum(t.old_muti_times)/sum(t.old_phurase)) as old_muti_avg_times --回头客多次购买平均购买次数
 	from
 	(
 		select a.tenant,a.plat_code,a.uni_id,a.dmonth,a.payments,a.buy_times,
-			   case when a.buy_times >= 2 then 1 else 0 end as old_phurase
+			   case when a.buy_times >= 2 then 1 else 0 end as old_phurase,
+			   case when a.buy_times = 1 then 1 else 0 end as old_one_buy_cusnum, --回头客单次购买人数
+			   case when a.buy_times = 1 then a.payments else 0 end as old_one_payments, --回头客单次购买金额
+			   case when a.buy_times >= 2 then a.payments else 0 end as old_muti_payments,--回头客多次购买金额
+			   case when a.buy_times >= 2 then a.buy_times else 0 end as old_muti_times -- 回头客多次购买次数
 		from dw_rfm.b_sales_plat_analyze_trade_temp a
 		left join (
 			select tenant,plat_code,uni_id,first_buy_time from dw_rfm.b_qqd_plat_rfm where part='${stat_date}'
@@ -388,9 +428,9 @@ select t.tenant,t.plat_code,null as uni_shop_id,t.dmonth as date_col,
 	   if(a.new_repeat_num is null,0,a.new_repeat_num) as new_repeat_num,
 	   if(a.new_repeat_rate is null,0,a.new_repeat_rate) as new_repeat_rate,
 	   
-	   0 as new_one_price,  --新客单次购买客单价
-	   0 as new_muti_price, --新客多次购买客单价
-	   0 as new_muti_avg_times,
+	   if(a.new_one_price if null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
+	   if(a.new_muti_price if null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
+	   if(a.new_muti_avg_times if null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
 	   
 	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
 	   if(a.old_rate is null,0,a.old_rate) as old_rate,
@@ -401,9 +441,9 @@ select t.tenant,t.plat_code,null as uni_shop_id,t.dmonth as date_col,
 	   if(a.old_repeat_num is null,0,a.old_repeat_num) as old_repeat_num,
 	   if(a.old_repeat_rate is null,0,a.old_repeat_rate) as old_repeat_rate,
 	 
-	   0 as old_one_price,  --新客单次购买客单价
-	   0 as old_muti_price, --新客多次购买客单价
-	   0 as old_muti_avg_times
+	   if(a.old_one_price is null,0,a.old_one_price) as old_one_price,
+	   if(a.old_muti_price is null,0,a.old_muti_price) as old_muti_price,
+	   if(a.old_muti_avg_times is null,0,a.old_muti_avg_times) as old_muti_avg_times,
 	   
 	   2 as type,
 	   '${stat_date}' as stat_date,
@@ -438,7 +478,7 @@ group by a.tenant,a.uni_id,a.dmonth;
 --计算租户级的数据
 drop table if exists dw_rfm.b_sale_tenant_every_month_all_temp;
 create table dw_rfm.b_sale_tenant_every_month_all_temp as
-select t.tenant,t.dmonth
+select t.tenant,t.dmonth,
 	count(t.uni_id) as cus_num, -- 客户总数
 	sum(t.payments) as payments, -- 平台总金额
 	sum(t.payments)/sum(t.buy_times) as avg_price,--平均客单价
@@ -457,7 +497,10 @@ select r1.tenant,r1.dmonth,
 	   r1.new_avg_price,  --新客客单价
 	   r1.new_avg_times,  --新客平均购买次数
 	   r1.new_repeat_num, --新客复购人数
-	   r1.new_repeat_rate --新客复购率
+	   r1.new_repeat_rate, --新客复购率
+	   r1.new_one_price,
+	   r1.new_muti_price,
+	   r1.new_muti_avg_times
 from 
 (
 	select t.tenant,t.dmonth,
@@ -466,11 +509,18 @@ from
 		sum(t.payments)/sum(t.buy_times) as new_avg_price,--平均客单价
 		sum(t.buy_times)/count(t.uni_id) as new_avg_times, --平均次数
 		sum(t.new_phurase) as new_repeat_num, --新客复购人数
-		(sum(t.new_phurase)/count(t.uni_id)) as new_repeat_rate --新客复购率
+		(sum(t.new_phurase)/count(t.uni_id)) as new_repeat_rate, --新客复购率
+		(sum(t.new_one_payments)/sum(t.new_one_buy_cusnum)) as new_one_price,--新客单次购买客单价
+		(sum(t.new_muti_payments)/sum(t.new_phurase)) as new_muti_price, --新客多次购买客单价
+		(sum(t.new_muti_times)/sum(t.new_phurase)) as new_muti_avg_times --新客多次购买平均购买次数
 	from
 	(
 		select a.tenant,a.uni_id,a.dmonth,a.payments,a.buy_times,
-			   case when a.buy_times >= 2 then 1 else 0 end as new_phurase
+			   case when a.buy_times >= 2 then 1 else 0 end as new_phurase,
+			   case when a.buy_times = 1 then 1 else 0 end as new_one_buy_cusnum, --新客单次购买人数
+			   case when a.buy_times = 1 then a.payments else 0 end as new_one_payments, --新客单次购买金额
+			   case when a.buy_times >= 2 then a.payments else 0 end as new_muti_payments,--新客多次购买金额
+			   case when a.buy_times >= 2 then a.buy_times else 0 end as new_muti_times -- 新客多次购买次数
 		from dw_rfm.b_sales_tenant_analyze_trade_temp a
 		left join (
 			select tenant,uni_id,first_buy_time from dw_rfm.b_qqd_tenant_rfm where part='${stat_date}'
@@ -480,8 +530,7 @@ from
 	) t
 	group by t.tenant,t.dmonth
 ) r1
-left join 
-   dw_rfm.b_sale_tenant_every_month_all_temp r2
+left join dw_rfm.b_sale_tenant_every_month_all_temp r2
 on r1.tenant=r2.tenant and r1.dmonth=r2.dmonth;
 
 --租户级回头客数据计算
@@ -495,7 +544,10 @@ select r1.tenant,r1.dmonth,
 	   r1.old_avg_price,  --回头客客单价
 	   r1.old_avg_times,  --回头客平均购买次数
 	   r1.old_repeat_num, --回头客复购人数
-	   r1.old_repeat_rate --回头客复购率
+	   r1.old_repeat_rate, --回头客复购率
+	   r1.old_one_price,
+	   r1.old_muti_price,
+	   r1.old_muti_avg_times
 from 
 (
 	select t.tenant,t.dmonth,
@@ -504,11 +556,18 @@ from
 		sum(t.payments)/sum(t.buy_times) as old_avg_price,--平均客单价
 		sum(t.buy_times)/count(t.uni_id) as old_avg_times, --平均次数
 		sum(t.old_phurase) as old_repeat_num, --复购客复购人数
-		(sum(t.old_phurase)/count(t.uni_id)) as old_repeat_rate --复购客复购率
+		(sum(t.old_phurase)/count(t.uni_id)) as old_repeat_rate, --复购客复购率
+		(sum(t.old_one_payments)/sum(t.old_one_buy_cusnum)) as old_one_price,--回头客单次购买客单价
+		(sum(t.old_muti_payments)/sum(t.old_phurase)) as old_muti_price, --回头客多次购买客单价
+		(sum(t.old_muti_times)/sum(t.old_phurase)) as old_muti_avg_times --回头客多次购买平均购买次数
 	from
 	(
 		select a.tenant,a.uni_id,a.dmonth,a.payments,a.buy_times,
-			  case when a.buy_times >= 2 then 1 else 0 end as old_phurase
+			  case when a.buy_times >= 2 then 1 else 0 end as old_phurase,
+			  case when a.buy_times = 1 then 1 else 0 end as old_one_buy_cusnum, --回头客单次购买人数
+			  case when a.buy_times = 1 then a.payments else 0 end as old_one_payments, --回头客单次购买金额
+			  case when a.buy_times >= 2 then a.payments else 0 end as old_muti_payments,--回头客多次购买金额
+			  case when a.buy_times >= 2 then a.buy_times else 0 end as old_muti_times -- 回头客多次购买次数
 		from dw_rfm.b_sales_tenant_analyze_trade_temp a
 		left join (
 			select tenant,uni_id,first_buy_time from dw_rfm.b_qqd_tenant_rfm where part='${stat_date}'
@@ -535,9 +594,9 @@ select t.tenant,null as plat_code,null as uni_shop_id,t.dmonth as date_col,
 	   if(a.new_repeat_num is null,0,a.new_repeat_num) as new_repeat_num,
 	   if(a.new_repeat_rate is null,0,a.new_repeat_rate) as new_repeat_rate,
 	   
-	   0 as new_one_price,  --新客单次购买客单价
-	   0 as new_muti_price, --新客多次购买客单价
-	   0 as new_muti_avg_times,
+	   if(a.new_one_price if null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
+	   if(a.new_muti_price if null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
+	   if(a.new_muti_avg_times if null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
 	   
 	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
 	   if(a.old_rate is null,0,a.old_rate) as old_rate,
@@ -548,9 +607,9 @@ select t.tenant,null as plat_code,null as uni_shop_id,t.dmonth as date_col,
 	   if(a.old_repeat_num is null,0,a.old_repeat_num) as old_repeat_num,
 	   if(a.old_repeat_rate is null,0,a.old_repeat_rate) as old_repeat_rate,
 	 
-	   0 as old_one_price,  --新客单次购买客单价
-	   0 as old_muti_price, --新客多次购买客单价
-	   0 as old_muti_avg_times
+	   if(a.old_one_price is null,0,a.old_one_price) as old_one_price,
+	   if(a.old_muti_price is null,0,a.old_muti_price) as old_muti_price,
+	   if(a.old_muti_avg_times is null,0,a.old_muti_avg_times) as old_muti_avg_times,
 	   
 	   1 as type,
 	   '${stat_date}' as stat_date,
@@ -563,9 +622,7 @@ left join dw_rfm.b_sale_tenant_old_customer_result_temp b
 on t.tenant=b.tenant and t.dmonth=b.dmonth;
 
 
-
---下面是计算[日]数据的步骤
-
+--以下是计算[日]数据的步骤
 --每日的数据(近32天),客户在各店铺中消费数据
 drop table if exists dw_rfm.b_sales_analyze_everyday_trade_temp;
 create table if not exists dw_rfm.b_sales_analyze_everyday_trade_temp(
@@ -600,7 +657,7 @@ left join dw_base.b_std_tenant_shop b
 on a.plat_code=b.plat_code and a.shop_id=b.shop_id
 where b.tenant is not null;
 
--- 计算每日的客户在店铺级的数据
+-- 计算每日客户在店铺级的数据
 
 -- 按日期计算店铺总的KPI
 drop table if exists dw_rfm.b_sale_every_day_all_temp;
