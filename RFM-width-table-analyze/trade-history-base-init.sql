@@ -58,7 +58,7 @@ left join
 		case when lower(trade_type) = 'step' and pay_time is not null then pay_time else created end as created
 	from dw_base.b_std_trade
 	where
-	  part < '${stat_date}'  
+	  part <= substr('${stat_date}',1,7)  
 	  and (created is not NULL  and substr(created,1,10) <= '${stat_date}')
 	  and uni_id is not NULL 
 	  and payment is not NULL
