@@ -56,9 +56,7 @@ from
 			case when refund_fee = 'NULL' or refund_fee is NULL then payment else (payment - refund_fee) end as payment,
 			case when lower(trade_type) = 'step' and pay_time is not null then pay_time else created end as created
 		from dw_base.b_std_trade
-		where
-		  part < '${stat_date}'
-		  and (created is not NULL and substr(created,1,10) <= '${stat_date}'
+		where (created is not NULL and substr(created,1,10) <= '${stat_date}')
 		  and uni_id is not NULL 
 		  and payment is not NULL
 		  and order_status in ('WAIT_SELLER_SEND_GOODS','SELLER_CONSIGNED_PART','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','TRADE_FINISHED','PAID_FORBID_CONSIGN','ORDER_RECEIVED','TRADE_PAID')
@@ -125,8 +123,7 @@ from
 			   case when a.buy_times >= 2 then a.buy_times else 0 end as new_muti_times -- 新客多次购买次数
 		from dw_rfm.b_all_year_trade_statics_result a
 		left join (
-			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time
-			from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
+			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
 		) b
 		on a.tenant=b.tenant and a.plat_code=b.plat_code and a.uni_shop_id=b.uni_shop_id and a.uni_id=b.uni_id
 		where b.first_buy_time is not null and a.byear = substr(b.first_buy_time,1,4)
@@ -394,8 +391,7 @@ from
 			  case when a.buy_times >= 2 then a.buy_times else 0 end as old_muti_times -- 回头客多次购买次数
 		from dw_rfm.b_sales_plat_year_trade_temp a
 		left join (
-			select tenant,plat_code,uni_id,first_buy_time
-			from dw_rfm.b_qqd_plat_rfm where part='${stat_date}'
+			select tenant,plat_code,uni_id,first_buy_time from dw_rfm.b_qqd_plat_rfm where part='${stat_date}'
 		) b
 		on a.tenant=b.tenant and a.plat_code=b.plat_code and a.uni_id=b.uni_id
 		where b.first_buy_time is not null and a.byear > substr(b.first_buy_time,1,4)

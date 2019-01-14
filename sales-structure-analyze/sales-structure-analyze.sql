@@ -46,7 +46,7 @@ select plat_code,uni_shop_id,shop_id,uni_id,
 	case when lower(trade_type) = 'step' and pay_time is not null then pay_time else created end as created
 from dw_base.b_std_trade
 where
-  part < substr(add_months('${stat_date}',-14),1,7)  
+  part > substr(add_months('${stat_date}',-14),1,7)  
   and (created is not NULL and substr(created,1,10) <= '${stat_date}' and substr(created,1,10) > add_months('${stat_date}',-14))
   and uni_id is not NULL 
   and payment is not NULL
@@ -137,8 +137,7 @@ from
 			    case when a.buy_times >= 2 then a.buy_times else 0 end as new_muti_times -- 新客多次购买次数
 		from dw_rfm.b_sales_analyze_trade_temp a
 		left join (
-			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time
-			from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
+			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
 		) b
 		on a.tenant=b.tenant and a.plat_code=b.plat_code and a.uni_shop_id=b.uni_shop_id and a.uni_id=b.uni_id
 		where b.first_buy_time is not null and a.dmonth = substr(b.first_buy_time,1,7)
@@ -187,8 +186,7 @@ from
 			   case when a.buy_times >= 2 then a.buy_times else 0 end as old_muti_times -- 回头客多次购买次数
 		from dw_rfm.b_sales_analyze_trade_temp a
 		left join (
-			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time
-			from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
+			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
 		) b
 		on a.tenant=b.tenant and a.plat_code=b.plat_code and a.uni_shop_id=b.uni_shop_id and a.uni_id=b.uni_id
 		where b.first_buy_time is not null and a.dmonth > substr(b.first_buy_time,1,7)
@@ -354,8 +352,7 @@ from
 			    case when a.buy_times >= 2 then a.buy_times else 0 end as new_muti_times -- 新客多次购买次数
 		from dw_rfm.b_sales_plat_analyze_trade_temp a
 		left join (
-			select tenant,plat_code,uni_id,first_buy_time
-			from dw_rfm.b_qqd_plat_rfm where part='${stat_date}'
+			select tenant,plat_code,uni_id,first_buy_time from dw_rfm.b_qqd_plat_rfm where part='${stat_date}'
 		) b
 		on a.tenant=b.tenant and a.plat_code=b.plat_code and a.uni_id=b.uni_id
 		where b.first_buy_time is not null and a.dmonth = substr(b.first_buy_time,1,7)
@@ -694,8 +691,7 @@ from
 		select a.tenant,a.plat_code,a.uni_shop_id,a.uni_id,a.ddate,a.payments,a.buy_times 
 		from dw_rfm.b_sales_analyze_everyday_trade_temp a
 		left join (
-			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time
-			from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
+			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
 		) b
 		on a.tenant=b.tenant and a.plat_code=b.plat_code and a.uni_shop_id=b.uni_shop_id and a.uni_id=b.uni_id
 		where b.first_buy_time is not null and a.ddate = substr(b.first_buy_time,1,10)
@@ -727,8 +723,7 @@ from
 		select a.tenant,a.plat_code,a.uni_shop_id,a.uni_id,a.ddate,a.payments,a.buy_times 
 		from dw_rfm.b_sales_analyze_everyday_trade_temp a
 		left join (
-			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time
-			from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
+			select tenant,plat_code,uni_shop_id,uni_id,first_buy_time from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
 		) b
 		on a.tenant=b.tenant and a.plat_code=b.plat_code and a.uni_shop_id=b.uni_shop_id and a.uni_id=b.uni_id
 		where b.first_buy_time is not null and a.ddate > substr(b.first_buy_time,1,10)
