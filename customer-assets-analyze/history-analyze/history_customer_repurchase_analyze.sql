@@ -155,6 +155,6 @@ from(
     ) r
     group by r.tenant,r.plat_code,r.uni_shop_id,r.stat_date
 ) re
-left outer join dw_rfm.b_std_shop dp
-on re.uni_shop_id=dp.uni_shop_id
-where dp.uni_shop_id is not null;
+left outer join dw_base.b_std_tenant_shop db
+	on re.tenant=db.tenant and re.plat_code=db.plat_code and re.uni_shop_id =concat(db.plat_code,'|',db.shop_id)
+where db.tenant is not null;

@@ -142,7 +142,7 @@ from (
 		) b
 		group by b.tenant,b.plat_code,b.uni_shop_id
 	) c
-	left outer join dw_rfm.b_std_shop db
-	on c.uni_shop_id=db.uni_shop_id
-	where db.uni_shop_id is not null
+	left outer join dw_base.b_std_tenant_shop db
+	on c.tenant=db.tenant and c.plat_code=db.plat_code and c.uni_shop_id =concat(db.plat_code,'|',db.shop_id)
+	where db.tenant is not null
 )re;
