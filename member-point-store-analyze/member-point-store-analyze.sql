@@ -121,6 +121,7 @@ left join
 (
 	select tmp.card_plan_id,count(tmp.member_id) as totalmembers
 	from dw_rfm.b_effect_point_base_temp tmp
+	group by tmp.card_plan_id
 ) r
 on r1.card_plan_id=r.card_plan_id;
 
