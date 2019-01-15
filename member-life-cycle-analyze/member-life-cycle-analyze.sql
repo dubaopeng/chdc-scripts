@@ -123,38 +123,38 @@ select c.tenant,c.plat_code,c.uni_shop_id,c.card_plan_id,c.grade,
 	${hiveconf:submitTime} as modified
 from (
 	select b.tenant,b.plat_code,b.uni_shop_id,b.card_plan_id,b.grade,
-			cast(concat_ws('',collect_set(if(b.type='qianke',b.num,''))) as bigint) prospective, --潜客数量
-			cast(concat_ws('',collect_set(if(b.type='active_new',b.num,''))) as bigint) active_new, -- 新客数
-			cast(concat_ws('',collect_set(if(b.type='phurce_new',b.num,''))) as bigint) phurce_new, -- 新客复购数
-			cast(concat_ws('',collect_set(if(b.type='active_old',b.num,''))) as bigint) active_old, -- 老客数
-			cast(concat_ws('',collect_set(if(b.type='phurce_old',b.num,''))) as bigint) phurce_old, -- 老客复购数
-			cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) silent,  --沉默客户数
-			cast(concat_ws('',collect_set(if(b.type='loss',b.num,''))) as bigint) loss,   --流失客户数
+			cast(concat_ws('',collect_set(if(b.custype='qianke',b.num,''))) as bigint) prospective, --潜客数量
+			cast(concat_ws('',collect_set(if(b.custype='active_new',b.num,''))) as bigint) active_new, -- 新客数
+			cast(concat_ws('',collect_set(if(b.custype='phurce_new',b.num,''))) as bigint) phurce_new, -- 新客复购数
+			cast(concat_ws('',collect_set(if(b.custype='active_old',b.num,''))) as bigint) active_old, -- 老客数
+			cast(concat_ws('',collect_set(if(b.custype='phurce_old',b.num,''))) as bigint) phurce_old, -- 老客复购数
+			cast(concat_ws('',collect_set(if(b.custype='silent',b.num,''))) as bigint) silent,  --沉默客户数
+			cast(concat_ws('',collect_set(if(b.custype='loss',b.num,''))) as bigint) loss,   --流失客户数
 			sum(b.num) whole -- 全体客户
 	from(
 		select 
 			t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,t.grade,t.custype,count(distinct t.uni_id) num
 		from 
-		dw_rfm.b_customer_member_rfm_temp t
+			dw_rfm.b_customer_member_rfm_temp t
 		where t.ismember=0
 		group by t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,t.grade,t.custype
 	) b
 	group by b.tenant,b.plat_code,b.uni_shop_id,b.card_plan_id,b.grade
 	union all
 	select b.tenant,b.plat_code,b.uni_shop_id,b.card_plan_id,-1 as grade,
-			cast(concat_ws('',collect_set(if(b.type='qianke',b.num,''))) as bigint) prospective, --潜客数量
-			cast(concat_ws('',collect_set(if(b.type='active_new',b.num,''))) as bigint) active_new, -- 新客数
-			cast(concat_ws('',collect_set(if(b.type='phurce_new',b.num,''))) as bigint) phurce_new, -- 新客复购数
-			cast(concat_ws('',collect_set(if(b.type='active_old',b.num,''))) as bigint) active_old, -- 老客数
-			cast(concat_ws('',collect_set(if(b.type='phurce_old',b.num,''))) as bigint) phurce_old, -- 老客复购数
-			cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) silent,  --沉默客户数
-			cast(concat_ws('',collect_set(if(b.type='loss',b.num,''))) as bigint) loss,   --流失客户数
+			cast(concat_ws('',collect_set(if(b.custype='qianke',b.num,''))) as bigint) prospective, --潜客数量
+			cast(concat_ws('',collect_set(if(b.custype='active_new',b.num,''))) as bigint) active_new, -- 新客数
+			cast(concat_ws('',collect_set(if(b.custype='phurce_new',b.num,''))) as bigint) phurce_new, -- 新客复购数
+			cast(concat_ws('',collect_set(if(b.custype='active_old',b.num,''))) as bigint) active_old, -- 老客数
+			cast(concat_ws('',collect_set(if(b.custype='phurce_old',b.num,''))) as bigint) phurce_old, -- 老客复购数
+			cast(concat_ws('',collect_set(if(b.custype='silent',b.num,''))) as bigint) silent,  --沉默客户数
+			cast(concat_ws('',collect_set(if(b.custype='loss',b.num,''))) as bigint) loss,   --流失客户数
 			sum(b.num) whole  -- 全体客户
 	from(
 		select 
 			t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,t.custype,count(distinct t.uni_id) num
 		from 
-		dw_rfm.b_customer_member_rfm_temp t
+			dw_rfm.b_customer_member_rfm_temp t
 		where t.ismember=-1
 		group by t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,t.custype
 	) b
