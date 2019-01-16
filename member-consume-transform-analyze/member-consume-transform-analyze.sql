@@ -137,7 +137,7 @@ left join
 			   count(distinct a.member_id) fmembers
 		from 
 		dw_rfm.b_last14month_member_rfm a
-		group by a.tenant,a.plat_code,a.uni_shop_id,a.card_plan_id,a.joinmonth
+		group by a.tenant,a.plat_code,a.uni_shop_id,a.card_plan_id,a.joinmonth,a.frequency
 	) t
 	group by t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,t.joinmonth
 ) r2

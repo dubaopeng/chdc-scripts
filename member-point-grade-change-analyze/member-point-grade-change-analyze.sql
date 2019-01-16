@@ -130,7 +130,6 @@ from (
 ) re
 group by re.card_plan_id,re.rangetype;
 
-
 -- 计算积分失效和当前有效积分
 -- 积分失效：积分到期日期在统计周期内的积分
 -- 有效积分存量：截至“数据截至日期”时有效积分
@@ -624,6 +623,7 @@ select r4.card_plan_id,r4.nowgrade,r4.oldgrade,r4.members,5 as rangetype,'${stat
 from dw_rfm.b_last30day_member_grade_change_temp r4;
 
 -- 删除中间临时表
+drop table if exists dw_rfm.b_point_change_analyze_temp;
 drop table if exists dw_rfm.b_yestoday_member_grade_change_temp;
 drop table if exists dw_rfm.b_thisweek_member_grade_change_temp;
 drop table if exists dw_rfm.b_thismonth_member_grade_change_temp;
