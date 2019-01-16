@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_member_life_cycle`(
 	`plat_code` string,
     `uni_shop_id` string,
 	`card_plan_id` string,
-	`grade` int, -- 会员等级 -1:非会员行 0:会员行 99:合计 其他都是等级号
+	`grade` int, -- 会员等级 -1:非会员行 98:会员合计行 99:合计 其他都是等级号
     `prospective` bigint, 
     `active_new` bigint,
 	`phurce_new` bigint,
@@ -163,7 +163,7 @@ from (
 
 -- 计算会员的合计行和所有客户的合计行数据
 insert into table dw_rfm.cix_online_member_life_cycle partition(part='${stat_date}')
-select t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,0 as grade,--会员行数据
+select t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,98 as grade,--会员行数据
 	  sum(t.prospective)  as prospective,
 	  sum(t.active_new)  as active_new,
 	  sum(t.phurce_new)  as phurce_new,
