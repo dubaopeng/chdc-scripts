@@ -45,7 +45,8 @@ select tmp.tenant,tmp.plat_code,tmp.uni_shop_id,tmp.uni_id,tmp.card_plan_id,tmp.
 		  when rfm.year_buy_times>=5 then 5 end as frequency
 from 
 (
-	select b.tenant,a.plat_code,concat(a.plat_code,'|',a.shop_id) as uni_shop_id,a.uni_id,a.joinmonth
+	select b.tenant,a.plat_code,a.card_plan_id,a.member_id,
+	  concat(a.plat_code,'|',a.shop_id) as uni_shop_id,a.uni_id,a.joinmonth
 	from
 	(
 		select r.card_plan_id,r.member_id,r.joinmonth,r.plat_code,r.shop_id,r1.uni_id
