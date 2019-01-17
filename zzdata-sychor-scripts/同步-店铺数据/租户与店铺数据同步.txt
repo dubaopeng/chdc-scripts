@@ -1,0 +1,31 @@
+/*******1、全渠道租户与店铺关系数据**************/
+CREATE TABLE IF NOT EXISTS dbp_test.`qqd_tenant_shop_relation_middle`( 
+    `app_id` string,
+	`tenant` string,
+    `plat_code` string, 
+    `shop_id` string
+)
+partitioned by(part string )
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\u0001'
+lines terminated by '\n';
+
+
+/*********租户与店铺关系数据***********/
+CREATE TABLE IF NOT EXISTS dbp_test.`base_tenant_shop_relation`( 
+    `app_id` string,
+	`tenant` string,
+    `plat_code` string, 
+    `shop_id` string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\u0001'
+lines terminated by '\n';
+
+
+/*********同步代码,计算中间表中在基础表中不存在的数据*************/
+insert into dbp_test.`base_tenant_shop_relation`
+select a.app_id,a.tenant,a.plat_code,a.shop_id from(
+select distinct app_id,tenant,plat_code,shop_id from dbp_test.`qqd_tenant_shop_relation_middle` where part ='2018-11-15') a
+left outer join dbp_test.`base_tenant_shop_relation` b
+on (a.app_id = b.app_id and a.tenant = b.tenant
+and a.plat_code = b.plat_code and a.shop_id = b.shop_id)
+where b.app_id is null and b.tenant is null

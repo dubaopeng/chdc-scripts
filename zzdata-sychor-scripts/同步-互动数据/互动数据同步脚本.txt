@@ -1,0 +1,45 @@
+﻿/*********1、创建互动数据统一规范表*************/
+DROP TABLE IF EXISTS dbp_test1.`interaction_records_increment`;
+CREATE TABLE IF NOT EXISTS dbp_test1.`interaction_records_increment`(
+	`uni_id` string,
+    `plat_code` string,
+    `plat_account` string,
+	`parnter_id` string,
+	`shop_id` string,	
+    `interaction_time` timestamp,
+	`interaction_type` string, 
+	`interaction_name` string, 
+	`interaction_detail` string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'
+STORED AS TEXTFILE 
+LOCATION '/user/newbi/newbi/data/data_syschorized/interaction/${today}';
+
+
+/*******2、将上面的增量数据进行去重后，直接插入目标表************/
+CREATE TABLE IF NOT EXISTS dbp_test1.`base_interaction_records`(
+	`uni_id` string,
+    `plat_code` string,
+    `plat_account` string,
+	`parnter_id` string,
+	`shop_id` string,	
+    `interaction_time` timestamp,
+	`interaction_type` string, 
+	`interaction_name` string, 
+	`interaction_detail` string
+)
+partitioned by(platshop string,part string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
+STORED AS RCFILE;
+
+-- 注：platshop 使用平台和店铺hash生成，part为日期格式2018-11-16
+
+insert into dbp_test1.`base_interaction_records` partition(platshop,part)
+select uni_id,plat_code,plat_account,parnter_id,shop_id,interaction_time,interaction_type,interaction_name,interaction_detail,
+plat_code as platshop, to_date(interaction_time) as part
+from dbp_test1.`interaction_records_increment`;
+
+ select t.uni_id, t.plat_account,t.plat_code,t.shop_id,b.uni_id  from(select a.uni_id,a.plat_account,'RDS' as plat_code,a.shop_id from dw_source.s_interaction_history a where a.dt='2018-12-10') t left outer join  dw_base.b_std_shop_customer_rel b on( t.plat_account = b.plat_account and t.plat_code = b.plat_code ) where b.plat_code is not null limit 10;
+
+
+

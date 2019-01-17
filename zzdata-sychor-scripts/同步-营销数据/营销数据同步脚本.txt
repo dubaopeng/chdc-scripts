@@ -1,0 +1,45 @@
+/*********1、营销数据统一规范增量表*************/
+CREATE TABLE IF NOT EXISTS dbp_test.`marketing_records_increment`(
+	`uni_id` string,
+    `plat_code` string,
+    `plat_account` string,
+	`parnter_id` string,
+	`shop_id` string,	
+    `marketing_time` string,
+	`marketing_type` string, 
+	`marketing_name` string, 
+	`communication_mode` string,
+	`communication_content` string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'
+STORED AS TEXTFILE 
+LOCATION '/user/newbi/newbi/data/data_syschorized/marketing/${today}';
+
+
+/*******2、将上面的增量数据进行去重后，直接插入目标表************/
+
+CREATE TABLE IF NOT EXISTS dbp_test.`base_marketing_records`(
+	`uni_id` string,
+    `plat_code` string,
+    `plat_account` string,
+	`parnter_id` string,
+	`shop_id` string,	
+    `marketing_time` string,
+	`marketing_type` string, 
+	`marketing_name` string, 
+	`communication_mode` string,
+	`communication_content` string
+)
+partitioned by(platshop string,part string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
+STORED AS RCFILE;
+
+-- 注：platshop 使用平台和店铺hash生成，part为日期格式2018-11-16
+
+insert into dbp_test1.`base_marketing_records` partition(platshop,part)
+select uni_id,plat_code,plat_account,parnter_id,shop_id,marketing_time,marketing_type,marketing_name,communication_mode,communication_content,
+plat_code as platshop, to_date(marketing_time) as part
+from dbp_test1.`marketing_records_increment`;
+
+
+

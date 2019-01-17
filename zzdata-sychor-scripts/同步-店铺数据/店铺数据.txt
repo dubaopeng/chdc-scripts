@@ -1,0 +1,82 @@
+/*******1、全渠道店铺信息数据**************/
+CREATE TABLE IF NOT EXISTS dbp_test.`qqd_shop_middle`(
+	`data_from` string,
+	`partner_id` string,
+    `uni_shop_id` string,
+	`plat_code` string,
+	`shop_id` string,
+    `shop_name` string, 
+    `shop_desc` string,
+	`shop_logo` string,
+	`category_id` string,
+    `country` string, 
+    `state` string,
+	`city` string,
+	`district` string,
+    `town` string, 
+    `address` string,
+	`is_online_shop` int,
+	`status` int,
+    `open_date` string, 
+    `insert_time` string,
+	`modified` string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001'
+lines terminated by '\n';
+
+
+/*******全渠道店铺数据正式表**************/
+CREATE TABLE IF NOT EXISTS dbp_test.`base_qqd_shop`(
+	`data_from` string,
+	`partner_id` string,
+    `uni_shop_id` string,
+	`plat_code` string,
+	`shop_id` string,
+    `shop_name` string, 
+    `shop_desc` string,
+	`shop_logo` string,
+	`category_id` string,
+    `country` string, 
+    `state` string,
+	`city` string,
+	`district` string,
+    `town` string, 
+    `address` string,
+	`is_online_shop` int,
+	`status` int,
+    `open_date` string, 
+    `insert_time` string,
+	`modified` string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\u0001'
+lines terminated by '\n';
+
+/********插入结果表数据************/
+CREATE TABLE IF NOT EXISTS dbp_test.`base_qqd_shop`(
+	`data_from` string,
+	`partner_id` string,
+    `uni_shop_id` string,
+	`plat_code` string,
+	`shop_id` string,
+    `shop_name` string, 
+    `shop_desc` string,
+	`shop_logo` string,
+	`category_id` string,
+    `country` string, 
+    `state` string,
+	`city` string,
+	`district` string,
+    `town` string, 
+    `address` string,
+	`is_online_shop` int,
+	`status` int,
+    `open_date` string, 
+    `insert_time` string,
+	`modified` string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\u0001'
+
+
+insert overwrite table dbp_test.`base_qqd_shop` select * from dbp_test.`qqd_shop_middle`;
+
+

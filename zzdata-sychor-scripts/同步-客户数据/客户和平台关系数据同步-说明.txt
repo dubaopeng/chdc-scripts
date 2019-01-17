@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS common_qqd_base.`base_qqd_plat_customer_increment`( 
+    `uni_id` string, 
+    `plat_code` string, 
+    `plat_account` string,
+    `plat_nick` string,
+    `partner` string,
+    `tenant` string,
+    `plat_avatar` string
+)
+partitioned by(`dt` string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'
+STORED AS TEXTFILE 
+LOCATION '/user/newbi/newbi/data_syschorized/plat_customer';
