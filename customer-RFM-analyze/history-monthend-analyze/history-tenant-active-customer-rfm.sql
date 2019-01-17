@@ -1,4 +1,7 @@
 SET mapred.job.name='b_tenant_rfm_history 租户级历史月底数据计算';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;

@@ -1,4 +1,7 @@
 SET mapred.job.name='history-trade-analyze 历史订单分析计算';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -18,6 +21,7 @@ set hive.merge.mapfiles = true;
 set hive.merge.mapredfiles=true;
 set hive.merge.size.per.task = 512000000;
 set hive.support.concurrency=false;
+
 
 -- 需要先运行trade-history_base-init.sql脚本后，再执行该脚本，才能计算数据
 -- 基于历史数据初始化结果表进行，各月份月底数据，上线前一天数据计算

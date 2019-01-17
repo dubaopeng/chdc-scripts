@@ -1,4 +1,7 @@
 SET mapred.job.name='history_customer_retention_analyze-客户保持率历史月底分析';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -99,7 +102,7 @@ group by r.tenant,r.plat_code,r.stat_date;
 
 -- 店铺级客户保持率计算
 insert into table dw_rfm.customer_retention_analyze_history
-select re.tenant,re.plat_code,re.uni_shop_id,dp.shop_name,
+select re.tenant,re.plat_code,re.uni_shop_id,db.shop_name,
 	re.prev_year_num,re.last_year_num,
 	case re.prev_year_num when 0 then -1 else re.last_year_num/re.prev_year_num end as rate,
 	3 as type,

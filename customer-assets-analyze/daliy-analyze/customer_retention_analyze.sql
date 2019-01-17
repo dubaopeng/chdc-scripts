@@ -1,4 +1,7 @@
 SET mapred.job.name='cix_online_customer_retention_analyze-客户保持率分析';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -44,61 +47,72 @@ set isMonthEnd=if(date_sub(concat(substr(add_months('${stat_date}',1),0,7),'-01'
 set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 
 -- 租户级客户保持数据分析
-insert into table dw_rfm.cix_online_customer_retention_analyze
-select r.tenant,null as plat_code,null as uni_shop_id,null as shop_name,
-    sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num,
-    case sum(r.prev_year_num) when 0 then -1 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
-    1 as type,
+insert overwrite table dw_rfm.cix_online_customer_retention_analyze
+select a.tenant,a.plat_code,a.uni_shop_id,a.shop_name,
+	a.prev_year_num,a.last_year_num,a.rate,
+	a.type,
 	${hiveconf:isMonthEnd} as end_month,
 	'${stat_date}' as stat_date,
 	${hiveconf:submitTime} as modified
-from (
-    select t.tenant,
-    if(t.tyear_buy_times >=1,1,0) prev_year_num,
-    if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
-    from dw_rfm.b_qqd_tenant_rfm t
-    where part='${stat_date}'
-) r
-group by r.tenant
+from
+(
+	select r.tenant,null as plat_code,null as uni_shop_id,null as shop_name,
+		sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num,
+		case sum(r.prev_year_num) when 0 then -1 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
+		1 as type
+	from (
+		select t.tenant,
+		if(t.tyear_buy_times >=1,1,0) prev_year_num,
+		if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
+		from dw_rfm.b_qqd_tenant_rfm t
+		where part='${stat_date}'
+	) r
+	group by r.tenant
 
-union all
--- 平台级客户保持率计算
-select r.tenant,r.plat_code,null as uni_shop_id,null as shop_name,
-    sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num,
-    case sum(r.prev_year_num) when 0 then -1 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
-    2 as type,
-    ${hiveconf:isMonthEnd} as end_month,
-	'${stat_date}' as stat_date,
-	${hiveconf:submitTime} as modified
-from (
-    select t.tenant,t.plat_code,
-    if(t.tyear_buy_times >=1,1,0) prev_year_num,
-    if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
-    from dw_rfm.b_qqd_plat_rfm t
-    where part='${stat_date}'
-) r
-group by r.tenant,r.plat_code
+	union all
+	-- 平台级客户保持率计算
+	select r.tenant,r.plat_code,null as uni_shop_id,null as shop_name,
+		sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num,
+		case sum(r.prev_year_num) when 0 then -1 else sum(r.last_year_num)/sum(r.prev_year_num) end as rate,
+		2 as type
+	from (
+		select t.tenant,t.plat_code,
+		if(t.tyear_buy_times >=1,1,0) prev_year_num,
+		if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
+		from dw_rfm.b_qqd_plat_rfm t
+		where part='${stat_date}'
+	) r
+	group by r.tenant,r.plat_code
 
-union all
--- 店铺级客户保持率计算
-select re.tenant,re.plat_code,re.uni_shop_id,dp.shop_name,
-	re.prev_year_num,re.last_year_num,
-	case re.prev_year_num when 0 then -1 else re.last_year_num/re.prev_year_num end as rate,
-	3 as type,
-	${hiveconf:isMonthEnd} as end_month,
-	'${stat_date}' as stat_date,
-	${hiveconf:submitTime} as modified
-from(
-    select r.tenant,r.plat_code,r.uni_shop_id,sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num
-    from (
-        select t.tenant,t.plat_code,t.uni_shop_id,
-        if(t.tyear_buy_times >=1,1,0) prev_year_num,
-        if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
-        from dw_rfm.b_qqd_shop_rfm t
-        where part='${stat_date}'
-    ) r
-    group by r.tenant,r.plat_code,r.uni_shop_id
-) re
-left outer join dw_base.b_std_tenant_shop db
-	on re.tenant=db.tenant and re.plat_code=db.plat_code and re.uni_shop_id =concat(db.plat_code,'|',db.shop_id)
-where db.tenant is not null;
+	union all
+	-- 店铺级客户保持率计算
+	select re.tenant,re.plat_code,re.uni_shop_id,db.shop_name,
+		re.prev_year_num,re.last_year_num,
+		case re.prev_year_num when 0 then -1 else re.last_year_num/re.prev_year_num end as rate,
+		3 as type
+	from(
+		select r.tenant,r.plat_code,r.uni_shop_id,sum(r.prev_year_num) prev_year_num,sum(r.last_year_num) last_year_num
+		from (
+			select t.tenant,t.plat_code,t.uni_shop_id,
+			if(t.tyear_buy_times >=1,1,0) prev_year_num,
+			if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
+			from dw_rfm.b_qqd_shop_rfm t
+			where part='${stat_date}'
+		) r
+		group by r.tenant,r.plat_code,r.uni_shop_id
+	) re
+	left outer join dw_base.b_std_tenant_shop db
+		on re.tenant=db.tenant and re.plat_code=db.plat_code and re.uni_shop_id =concat(db.plat_code,'|',db.shop_id)
+	where db.tenant is not null
+) a;
+
+insert overwrite table dw_rfm.cix_online_customer_retention_analyze
+select a.tenant,a.plat_code,a.uni_shop_id,a.shop_name,
+	a.prev_year_num,
+	a.last_year_num,
+	a.rate,
+	a.type,
+	a.end_month,
+	a.stat_date,
+	a.modified
+	from dw_rfm.cix_online_customer_retention_analyze a;

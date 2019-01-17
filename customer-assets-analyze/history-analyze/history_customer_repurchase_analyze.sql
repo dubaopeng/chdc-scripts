@@ -1,4 +1,7 @@
 SET mapred.job.name='history_customer_repurchase_anlyze-客户历史月底复购分析';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -127,7 +130,7 @@ group by r.tenant,r.plat_code,r.stat_date;
 
 -- 店铺级客户复购率计算
 insert into table dw_rfm.customer_repurchase_anlyze_history
-select re.tenant,re.plat_code,re.uni_shop_id,dp.shop_name,
+select re.tenant,re.plat_code,re.uni_shop_id,db.shop_name,
 re.activeNum,re.repurNum,case re.activeNum when 0 then -1 else re.repurNum/re.activeNum end as rate,
 re.activeNewNum,re.newrepurNum,case re.activeNewNum when 0 then -1 else re.newrepurNum/re.activeNewNum end as new_rate,
 re.activeOldNum,re.oldrepurNum,case re.activeOldNum when 0 then -1 else re.oldrepurNum/re.activeOldNum end as old_rate,

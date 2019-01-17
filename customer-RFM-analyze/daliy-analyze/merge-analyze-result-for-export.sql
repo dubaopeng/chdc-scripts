@@ -1,4 +1,7 @@
 SET mapred.job.name='merge-analyze-result-for-export-rfm';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -113,11 +116,18 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS TEXTFILE;
 
 insert overwrite table dw_rfm.`cix_online_customer_analysis_notify`
-select 'cix_online_active_customer_rm' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-union all
-select 'cix_online_active_customer_rf' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-union all
-select 'cix_online_customer_purchase_interval' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date;
+select a.table_name,a.available,a.modified,a.stat_date
+from(
+	select 'cix_online_active_customer_rm' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+	union all
+	select 'cix_online_active_customer_rf' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+	union all
+	select 'cix_online_customer_purchase_interval' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+) a;
+
+insert overwrite table dw_rfm.cix_online_customer_analysis_notify
+	select a.table_name,a.available,a.modified,a.stat_date 
+	from dw_rfm.cix_online_customer_analysis_notify a;
 
 -- TODO 接下来使用sqoop导出上面几个表的数据到mysql表中
 

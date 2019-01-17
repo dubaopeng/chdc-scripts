@@ -1,4 +1,7 @@
 SET mapred.job.name='cix_online_customer_assets_view-客户资产概览';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -49,10 +52,10 @@ set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 -- 对租户级、平台级、店铺级的统计分析结果合并入统计分析结果表
 insert overwrite table dw_rfm.cix_online_customer_assets_view
 select re.tenant,re.plat_code,re.uni_shop_id,re.shop_name,re.prospective,re.active,
-re.silent,re.loss,re.whole,re.type,
-${hiveconf:isMonthEnd} as end_month,
-'${stat_date}' as stat_date,
-${hiveconf:submitTime} as modified
+		re.silent,re.loss,re.whole,re.type,
+		${hiveconf:isMonthEnd} as end_month,
+		'${stat_date}' as stat_date,
+		${hiveconf:submitTime} as modified
 from (
 	-- 租户级别的客户资产统计分析
 	select c.tenant,null as plat_code,null as uni_shop_id,null as shop_name,
@@ -146,3 +149,12 @@ from (
 	on c.tenant=db.tenant and c.plat_code=db.plat_code and c.uni_shop_id =concat(db.plat_code,'|',db.shop_id)
 	where db.tenant is not null
 )re;
+
+--SQOOP需要整理成文件
+insert overwrite table dw_rfm.cix_online_customer_assets_view
+select re.tenant,re.plat_code,re.uni_shop_id,re.shop_name,re.prospective_num,re.active_num,
+		re.silent_num,re.loss_num,re.whole_num,re.type,
+		re.end_month,
+		re.stat_date,
+		re.modified
+	from dw_rfm.cix_online_customer_assets_view re;

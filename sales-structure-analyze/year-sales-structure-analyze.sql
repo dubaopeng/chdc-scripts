@@ -1,4 +1,5 @@
 SET mapred.job.name='year-sales-structure-analyze-年销售结构分析';
+set hive.execution.engine=mr;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;

@@ -1,4 +1,7 @@
 SET mapred.job.name='customer-asserts-notify-writter';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -22,7 +25,6 @@ set hive.support.concurrency=false;
 -- 设置任务提交时间
 set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 
-
 -- 将两个表的记录插入通知表
 CREATE TABLE IF NOT EXISTS dw_rfm.`customer_asserts_analysis_notify`(
 	`table_name` string,
@@ -34,11 +36,19 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS TEXTFILE;
 
 insert overwrite table dw_rfm.`customer_asserts_analysis_notify`
-select 'cix_online_customer_assets_view' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-union all
-select 'cix_online_customer_repurchase_anlyze' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-union all
-select 'cix_online_customer_retention_analyze' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date;
+select a.table_name,a.available,modified,a.stat_date
+from 
+(
+	select 'cix_online_customer_assets_view' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+	union all
+	select 'cix_online_customer_repurchase_anlyze' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+	union all
+	select 'cix_online_customer_retention_analyze' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+) a;
+
+insert overwrite table dw_rfm.customer_asserts_analysis_notify
+	select a.table_name,a.available,modified,a.stat_date
+	from dw_rfm.customer_asserts_analysis_notify a;
 
 -- TODO 接下来使用sqoop导出上面几个表的数据到mysql表中
 

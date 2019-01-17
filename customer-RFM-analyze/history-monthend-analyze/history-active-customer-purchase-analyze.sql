@@ -1,4 +1,7 @@
 SET mapred.job.name='b_purchase_interval_history-复购间隔历史月底数据分析';
+--set hive.execution.engine=mr;
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -56,103 +59,114 @@ STORED AS TEXTFILE;
 
 -- 租户级复购客平均购买间隔
 insert overwrite table dw_rfm.b_purchase_interval_history
-
--- 复购客复购间隔分析
-select a.tenant,a.plat_code,a.uni_shop_id,a.customer_type,a.interval_days,a.customer_num,a.type,
-	a.stat_date,${hiveconf:submitTime} as modified
-from(
-	select t.tenant,null as plat_code,null as uni_shop_id,1 as customer_type,
-	ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1)) interval_days,
-	count(t.uni_id) customer_num,
-	1 as type,
-	t.stat_date
-	from dw_rfm.b_qqd_tenant_rfm t
-	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
-			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
-			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})  
-	and t.year_buy_times >= 2 
-	group by t.tenant,t.stat_date,ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1))
-
-	--平台级复购客购买间隔分析
-	union all
-	select t.tenant,t.plat_code,null as uni_shop_id,1 as customer_type,
-	ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1)) interval_days,
-	count(t.uni_id) customer_num,
-	2 as type,
-	t.stat_date
-	from dw_rfm.b_qqd_plat_rfm t
-	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
-			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
-			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})  
-	and t.year_buy_times >= 2 
-	group by t.tenant,t.plat_code,t.stat_date,ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1))
-
-	-- 店铺级复购客购买间隔分析
-	union all
-	select t.tenant,t.plat_code,t.uni_shop_id,1 as customer_type,
-	ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1)) interval_days,
-	count(t.uni_id) customer_num,
-	3 as type,
-	t.stat_date
-	from dw_rfm.b_qqd_shop_rfm t
-	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
-			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
-			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})  
-	and t.year_buy_times >= 2 
-	group by t.tenant,t.plat_code,t.uni_shop_id,t.stat_date,ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1))
-) a
-union all
-
--- 新客的复购间隔分析
-select b.tenant,b.plat_code,b.uni_shop_id,b.customer_type,b.interval_days,b.customer_num,b.type,
-	b.stat_date,${hiveconf:submitTime} as modified
-from(
-	select t.tenant,null as plat_code,null as uni_shop_id,
-		2 as customer_type,
-		datediff(t.second_buy_time,t.first_buy_time) interval_days,
+select re.tenant,re.plat_code,re.uni_shop_id,re.customer_type,re.interval_days,re.customer_num,re.type,
+	   re.stat_date,
+	   ${hiveconf:submitTime} as modified
+from
+(
+	-- 复购客复购间隔分析
+	select a.tenant,a.plat_code,a.uni_shop_id,a.customer_type,a.interval_days,a.customer_num,a.type,a.stat_date
+	from(
+		select t.tenant,null as plat_code,null as uni_shop_id,1 as customer_type,
+		ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1)) interval_days,
 		count(t.uni_id) customer_num,
 		1 as type,
 		t.stat_date
 		from dw_rfm.b_qqd_tenant_rfm t
-	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
-			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
-			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
-		and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
-		and t.second_buy_time is not null
-		and t.year_buy_times > 1
-	group by t.tenant,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
-	union all
-	select t.tenant,t.plat_code,null as uni_shop_id,
-		2 as customer_type,
-		datediff(t.second_buy_time,t.first_buy_time) interval_days,
+		where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+				${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
+				${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})  
+		and t.year_buy_times >= 2 
+		group by t.tenant,t.stat_date,ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1))
+
+		--平台级复购客购买间隔分析
+		union all
+		select t.tenant,t.plat_code,null as uni_shop_id,1 as customer_type,
+		ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1)) interval_days,
 		count(t.uni_id) customer_num,
 		2 as type,
 		t.stat_date
 		from dw_rfm.b_qqd_plat_rfm t
-	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
-			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
-			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
-		and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
-		and t.second_buy_time is not null
-		and t.year_buy_times > 1
-	group by t.tenant,t.plat_code,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
-	union all
-	select t.tenant,t.plat_code,t.uni_shop_id,
-		2 as customer_type,
-		datediff(t.second_buy_time,t.first_buy_time) interval_days,
+		where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+				${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
+				${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})  
+		and t.year_buy_times >= 2 
+		group by t.tenant,t.plat_code,t.stat_date,ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1))
+
+		-- 店铺级复购客购买间隔分析
+		union all
+		select t.tenant,t.plat_code,t.uni_shop_id,1 as customer_type,
+		ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1)) interval_days,
 		count(t.uni_id) customer_num,
 		3 as type,
 		t.stat_date
 		from dw_rfm.b_qqd_shop_rfm t
-	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
-			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
-			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
-		and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
-		and t.second_buy_time is not null
-		and t.year_buy_times > 1
-	group by t.tenant,t.plat_code,t.uni_shop_id,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
-) b;
+		where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+				${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
+				${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})  
+		and t.year_buy_times >= 2 
+		group by t.tenant,t.plat_code,t.uni_shop_id,t.stat_date,ceil(datediff(t.year_last_time,t.year_first_time)/(t.year_buy_times-1))
+	) a
+	union all
 
+	-- 新客的复购间隔分析
+	select b.tenant,b.plat_code,b.uni_shop_id,b.customer_type,b.interval_days,b.customer_num,b.type,b.stat_date
+	from(
+		select t.tenant,null as plat_code,null as uni_shop_id,
+			2 as customer_type,
+			datediff(t.second_buy_time,t.first_buy_time) interval_days,
+			count(t.uni_id) customer_num,
+			1 as type,
+			t.stat_date
+			from dw_rfm.b_qqd_tenant_rfm t
+		where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+				${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
+				${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
+			and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
+			and t.second_buy_time is not null
+			and t.year_buy_times > 1
+		group by t.tenant,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
+		union all
+		select t.tenant,t.plat_code,null as uni_shop_id,
+			2 as customer_type,
+			datediff(t.second_buy_time,t.first_buy_time) interval_days,
+			count(t.uni_id) customer_num,
+			2 as type,
+			t.stat_date
+			from dw_rfm.b_qqd_plat_rfm t
+		where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+				${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
+				${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
+			and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
+			and t.second_buy_time is not null
+			and t.year_buy_times > 1
+		group by t.tenant,t.plat_code,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
+		union all
+		select t.tenant,t.plat_code,t.uni_shop_id,
+			2 as customer_type,
+			datediff(t.second_buy_time,t.first_buy_time) interval_days,
+			count(t.uni_id) customer_num,
+			3 as type,
+			t.stat_date
+			from dw_rfm.b_qqd_shop_rfm t
+		where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+				${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
+				${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
+			and substr(t.first_buy_time,1,10) > add_months(t.stat_date,-12)
+			and t.second_buy_time is not null
+			and t.year_buy_times > 1
+		group by t.tenant,t.plat_code,t.uni_shop_id,t.stat_date,datediff(t.second_buy_time,t.first_buy_time)
+	) b
+) re;
+
+-- sqoop导入需要文件
+insert overwrite table dw_rfm.b_purchase_interval_history
+select re.tenant,re.plat_code,re.uni_shop_id,re.customer_type,re.interval_days,
+	   re.customer_num,
+	   re.type,
+	   re.stat_date,
+	   re.modified
+	   from dw_rfm.b_purchase_interval_history re;
 
 
 
