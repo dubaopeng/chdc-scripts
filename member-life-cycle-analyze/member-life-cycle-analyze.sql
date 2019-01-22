@@ -1,4 +1,6 @@
 SET mapred.job.name='member-life-cycle-analyze 会员生命周期分析';
+set hive.tez.container.size=16144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;

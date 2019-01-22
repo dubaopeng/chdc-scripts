@@ -1,4 +1,6 @@
 SET mapred.job.name='member-point-grade-change-会员积分等级变更分析';
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;

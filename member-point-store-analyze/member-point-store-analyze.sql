@@ -1,4 +1,6 @@
 SET mapred.job.name='member-point-store-analyze-积分存量分析';
+set hive.tez.container.size=6144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -151,8 +153,12 @@ where substr(t.effective_date,1,10) <= '${stat_date}'
 	  and t.valid=1
 group by t.card_plan_id;
 
+--删除临时表
+drop table if exists dw_rfm.b_effect_point_base_temp;
 
 
+-- 需要对 cix_online_point_store_mp同步到业务库
+-- 需要对cix_online_point_store_trend表用sqoop导出到业务库
 
 
 

@@ -1,5 +1,7 @@
 SET mapred.job.name='year-sales-structure-analyze-年销售结构分析';
-set hive.execution.engine=mr;
+--set hive.execution.engine=mr;
+set hive.tez.container.size=16144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -269,12 +271,6 @@ left join dw_rfm.b_sale_new_customer_year_temp a
 on t.tenant=a.tenant and t.plat_code=a.plat_code and t.uni_shop_id=a.uni_shop_id and t.byear=a.byear
 left join dw_rfm.b_sale_old_customer_year_temp b
 on t.tenant=b.tenant and t.plat_code=b.plat_code and t.uni_shop_id=b.uni_shop_id and t.byear=b.byear;
-
--- 删除临时表
-drop table if exists dw_rfm.b_sale_every_year_all_temp;
-drop table if exists dw_rfm.b_sale_new_customer_year_temp;
-drop table if exists dw_rfm.b_sale_old_customer_year_temp;
-
 
 -- 平台级客户各年份购买数据
 drop table if exists dw_rfm.b_sales_plat_year_trade_temp;
@@ -618,10 +614,16 @@ left join dw_rfm.b_sale_tenant_old_customer_year_temp b
 on t.tenant=b.tenant and t.byear=b.byear;
 
 --删除临时表
+drop table if exists dw_rfm.b_sale_new_customer_year_temp;
+drop table if exists dw_rfm.b_sale_old_customer_year_temp;
 drop table if exists dw_rfm.b_sale_tenant_every_year_all_temp;
 drop table if exists dw_rfm.b_sale_tenant_new_customer_year_temp;
 drop table if exists dw_rfm.b_sale_tenant_old_customer_year_temp;
 drop table if exists dw_rfm.b_all_year_trade_statics_result;
+drop table if exists dw_rfm.b_sales_tenant_year_trade_temp;
+drop table if exists dw_rfm.b_sale_every_year_all_temp;
+drop table if exists dw_rfm.b_sales_plat_year_trade_temp;
+
 
 -- 需要对年销售结构数据导入业务库:  cix_online_sales_structs_year
 

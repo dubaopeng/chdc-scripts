@@ -1,5 +1,7 @@
 SET mapred.job.name='sales-structure-analyze-month-day-月和日销售结构分析';
-set hive.execution.engine=mr;
+-- set hive.execution.engine=mr;
+set hive.tez.container.size=16144;
+set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -792,7 +794,6 @@ on t.tenant=a.tenant and t.plat_code=a.plat_code and t.uni_shop_id=a.uni_shop_id
 left join dw_rfm.b_sale_old_customer_everyday_result_temp b
 on t.tenant=b.tenant and t.plat_code=b.plat_code and t.uni_shop_id=b.uni_shop_id and t.ddate=b.ddate;
 
-
 -- 计算每日平台级的购买数据
 drop table if exists dw_rfm.b_sales_plat_everyday_trade_temp;
 create table if not exists dw_rfm.b_sales_plat_everyday_trade_temp(
@@ -814,7 +815,7 @@ from dw_rfm.b_sales_analyze_everyday_trade_temp a
 group by a.tenant,a.plat_code,a.uni_id,a.ddate;
 
 --计算平台级的数据
-drop table if exists dw_rfm.b_sale_plat_every_dayall_temp;
+drop table if exists dw_rfm.b_sale_plat_everyday_all_temp;
 create table dw_rfm.b_sale_plat_everyday_all_temp as
 select t.tenant,t.plat_code,t.ddate
 	count(t.uni_id) as cus_num, -- 客户总数
@@ -911,6 +912,12 @@ left join dw_rfm.b_sale_plat_new_customer_everyday_temp a
 on t.tenant=a.tenant and t.plat_code=a.plat_code and t.ddate=a.ddate
 left join dw_rfm.b_sale_plat_old_customer_everyday_temp b
 on t.tenant=b.tenant and t.plat_code=b.plat_code and t.ddate=b.ddate;
+
+--删除临时表
+drop table if exists dw_rfm.b_sale_plat_new_customer_everyday_temp;
+drop table if exists dw_rfm.b_sale_plat_old_customer_everyday_temp;
+drop table if exists dw_rfm.b_sale_plat_everyday_all_temp;
+drop table if exists dw_rfm.b_sales_plat_everyday_trade_temp;
 
 --每日租户级数据计算
 drop table if exists dw_rfm.b_sales_tenant_everyday_trade_temp;
@@ -1031,6 +1038,20 @@ left join dw_rfm.b_sale_tenant_old_customer_everyday_temp b
 on t.tenant=b.tenant and t.ddate=b.ddate;
 
 --删除临时表 待整理
+drop table if exists dw_rfm.b_sale_new_customer_everyday_result_temp;
+drop table if exists dw_rfm.b_sale_old_customer_everyday_result_temp;
+drop table if exists dw_rfm.b_sale_every_day_all_temp;
+drop table if exists dw_rfm.b_sale_tenant_new_customer_everyday_temp;
+drop table if exists dw_rfm.b_sale_tenant_old_customer_everyday_temp;
+drop table if exists dw_rfm.b_sale_tenant_everyday_all_temp;
+drop table if exists dw_rfm.b_sales_analyze_everyday_trade_temp;
+drop table if exists dw_rfm.b_last14month_trade_temp;
+drop table if exists dw_rfm.b_sales_analyze_trade_temp;
+drop table if exists dw_rfm.b_sale_every_month_all_temp;
+drop table if exists dw_rfm.b_sale_old_customer_result_temp;
+drop table if exists dw_rfm.b_sale_new_customer_result_temp;
+drop table if exists dw_rfm.b_sales_plat_analyze_trade_temp;
+
 
 -- 需要对每月的数据导入业务库  cix_online_sales_structs_month
 -- 每日的分析结果导入业务库 cix_online_sales_structs_day
