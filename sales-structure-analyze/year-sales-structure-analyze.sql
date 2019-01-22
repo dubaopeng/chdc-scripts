@@ -82,7 +82,7 @@ select
 	sum(t.payments)/sum(t.buy_times) as avg_price,--平均客单价
 	sum(t.buy_times)/count(t.uni_id) as avg_times -- 平均购买次数
 from dw_rfm.b_all_year_trade_statics_result t
-group by t.plat_code,t.uni_shop_id,t.shop_id,t.byear;
+group by t.tenant,t.plat_code,t.uni_shop_id,t.shop_id,t.byear;
 
 
 --使用每月客户数据，和RFM宽表进行关联，识别新客和回头客

@@ -670,7 +670,7 @@ select
 	sum(t.payments) payments, -- 成交总金额
 	sum(t.payments)/sum(t.buy_times) as avg_price --平均客单价
 from dw_rfm.b_sales_analyze_everyday_trade_temp t
-group by t.plat_code,t.uni_shop_id,t.shop_id,t.ddate;
+group by t.tenant,t.plat_code,t.uni_shop_id,t.shop_id,t.ddate;
 
 --每日新客数据计算
 drop table if exists dw_rfm.b_sale_new_customer_everyday_result_temp;
