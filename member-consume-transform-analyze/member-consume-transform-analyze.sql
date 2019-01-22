@@ -160,7 +160,8 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,'all' as join_month,
 	'${stat_date}' as stat_date,
 	${hiveconf:submitTime} as modified
 from dw_rfm.cix_online_member_consume_transform t
-where t.part='${stat_date}';
+where t.part='${stat_date}'
+group by t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id;
 
 
 -- 基于店铺级的数据，计算平台级数据 和 租户级数据
