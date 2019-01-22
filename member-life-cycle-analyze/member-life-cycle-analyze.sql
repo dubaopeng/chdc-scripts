@@ -130,7 +130,7 @@ from (
 			cast(concat_ws('',collect_set(if(b.custype='phurce_old',b.num,''))) as bigint) phurce_old, -- 老客复购数
 			cast(concat_ws('',collect_set(if(b.custype='silent',b.num,''))) as bigint) silent,  --沉默客户数
 			cast(concat_ws('',collect_set(if(b.custype='loss',b.num,''))) as bigint) loss,   --流失客户数
-			sum(b.num) whole -- 全体客户
+			sum(if(b.custype='0',0,b.num)) as whole -- 全体客户
 	from(
 		select 
 			t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,t.grade,t.custype,count(distinct t.uni_id) num
@@ -149,7 +149,7 @@ from (
 			cast(concat_ws('',collect_set(if(b.custype='phurce_old',b.num,''))) as bigint) phurce_old, -- 老客复购数
 			cast(concat_ws('',collect_set(if(b.custype='silent',b.num,''))) as bigint) silent,  --沉默客户数
 			cast(concat_ws('',collect_set(if(b.custype='loss',b.num,''))) as bigint) loss,   --流失客户数
-			sum(b.num) whole  -- 全体客户
+			sum(if(b.custype='0',0,b.num)) whole  -- 全体客户
 	from(
 		select 
 			t.tenant,t.plat_code,t.uni_shop_id,t.card_plan_id,t.custype,count(distinct t.uni_id) num

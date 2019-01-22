@@ -1,4 +1,4 @@
-SET mapred.job.name='special-tenants-rfm-width-table-指定租户的RFM宽表数据分析';
+SET mapred.job.name='tenant-rfm-width-table-指定租户的RFM宽表数据分析';
 --set hive.execution.engine=mr;
 set hive.tez.container.size=6144;
 set hive.cbo.enable=true;
@@ -49,7 +49,7 @@ select
 	shop_id,
 	uni_shop_id,
 	uni_id,
-	case when refund_fee = 'NULL' or refund_fee is NULL then payment else (payment - refund_fee) end as receive_payment,
+	case when lower(refund_fee) = 'null' or refund_fee is null then payment else (payment - refund_fee) end as receive_payment,
 	case when product_num is null then 1 else product_num end as product_num,
 	case when lower(trade_type) = 'step' and pay_time is not null then pay_time else created end as created
 from dw_base.b_std_trade
@@ -468,6 +468,8 @@ left outer join
 	on r.tenant = t.tenant and r.uni_id=t.uni_id;
 	
 -- 基于上面的RFM宽表数据，计算各类RFM统计数据
+
+
 
 
 

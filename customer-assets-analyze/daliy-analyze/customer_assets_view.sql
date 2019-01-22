@@ -59,18 +59,18 @@ select re.tenant,re.plat_code,re.uni_shop_id,re.shop_name,re.prospective,re.acti
 from (
 	-- 租户级别的客户资产统计分析
 	select c.tenant,null as plat_code,null as uni_shop_id,null as shop_name,
-	case when c.prospective is null then 0 else c.prospective end prospective,
-	case when c.active is null then 0 else c.active end active,
-	case when c.silent is null then 0 else c.silent end silent,
-	case when c.loss is null then 0 else c.loss end loss,
-	c.whole,
-	1 as type
+		if(c.prospective is null,0,c.prospective) as prospective,
+		if(c.active is null,0,c.active) as active,
+		if(c.silent is null,0,c.silent) as silent,
+		if(c.loss is null,0,c.loss) as loss,
+		c.whole,
+		1 as type
 	from (
 	select b.tenant, cast(concat_ws('',collect_set(if(b.type='prospective',b.num,''))) as bigint) prospective,
 		  cast(concat_ws('',collect_set(if(b.type='active',b.num,''))) as bigint) active,
 		  cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) silent,
 		  cast(concat_ws('',collect_set(if(b.type='loss',b.num,''))) as bigint) loss,
-		  sum(b.num) whole
+		  sum(if(b.type='0',0,b.num)) as whole
 		from (
 			select a.tenant,a.type,count(a.type) num from(
 				select t.tenant,t.uni_id,
@@ -88,19 +88,19 @@ from (
 	union all
 	-- 平台级别的客户资产统计分析
 	select c.tenant,c.plat_code,null as uni_shop_id,null as shop_name,
-	case when c.prospective is null then 0 else c.prospective end prospective,
-	case when c.active is null then 0 else c.active end active,
-	case when c.silent is null then 0 else c.silent end silent,
-	case when c.loss is null then 0 else c.loss end loss,
-	c.whole,
-	2 as type
+		if(c.prospective is null,0,c.prospective) as prospective,
+		if(c.active is null,0,c.active) as active,
+		if(c.silent is null,0,c.silent) as silent,
+		if(c.loss is null,0,c.loss) as loss,
+		c.whole,
+		2 as type
 	from (
 	select b.tenant,b.plat_code, 
 		  cast(concat_ws('',collect_set(if(b.type='prospective',b.num,''))) as bigint) prospective,
 		  cast(concat_ws('',collect_set(if(b.type='active',b.num,''))) as bigint) active,
 		  cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) silent,
 		  cast(concat_ws('',collect_set(if(b.type='loss',b.num,''))) as bigint) loss,
-		  sum(b.num) whole
+		  sum(if(b.type='0',0,b.num)) as whole
 		from (
 			select a.tenant,a.plat_code,a.type,count(a.type) num from(
 				select t.tenant,t.plat_code,t.uni_id,
@@ -118,19 +118,19 @@ from (
 	union all
 	-- 店铺级别的客户资产统计分析
 	select c.tenant,c.plat_code,c.uni_shop_id,db.shop_name,
-	case when c.prospective is null then 0 else c.prospective end prospective,
-	case when c.active is null then 0 else c.active end active,
-	case when c.silent is null then 0 else c.silent end silent,
-	case when c.loss is null then 0 else c.loss end loss,
-	c.whole,
-	3 as type
+		if(c.prospective is null,0,c.prospective) as prospective,
+		if(c.active is null,0,c.active) as active,
+		if(c.silent is null,0,c.silent) as silent,
+		if(c.loss is null,0,c.loss) as loss,
+		c.whole,
+		3 as type
 	from (
 		select b.tenant,b.plat_code,b.uni_shop_id,
 		  cast(concat_ws('',collect_set(if(b.type='prospective',b.num,''))) as bigint) prospective,
 		  cast(concat_ws('',collect_set(if(b.type='active',b.num,''))) as bigint) active,
 		  cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) silent,
 		  cast(concat_ws('',collect_set(if(b.type='loss',b.num,''))) as bigint) loss,
-		  sum(b.num) whole
+		  sum(if(b.type='0',0,b.num)) as whole
 		from (
 			select a.tenant,a.plat_code,a.uni_shop_id,a.type,count(a.type) num from(
 				select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,
