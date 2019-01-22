@@ -65,7 +65,7 @@ from
 		if(t.tyear_buy_times >=1,1,0) prev_year_num,
 		if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
 		from dw_rfm.b_qqd_tenant_rfm t
-		where part='${stat_date}'
+		where t.part='${stat_date}'
 	) r
 	group by r.tenant
 
@@ -80,7 +80,7 @@ from
 		if(t.tyear_buy_times >=1,1,0) prev_year_num,
 		if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
 		from dw_rfm.b_qqd_plat_rfm t
-		where part='${stat_date}'
+		where t.part='${stat_date}'
 	) r
 	group by r.tenant,r.plat_code
 
@@ -97,7 +97,7 @@ from
 			if(t.tyear_buy_times >=1,1,0) prev_year_num,
 			if((t.tyear_buy_times >=1 and t.year_buy_times >= 1),1,0) last_year_num
 			from dw_rfm.b_qqd_shop_rfm t
-			where part='${stat_date}'
+			where t.part='${stat_date}'
 		) r
 		group by r.tenant,r.plat_code,r.uni_shop_id
 	) re

@@ -26,8 +26,8 @@ set hive.support.concurrency=false;
 -- 注：以下数据依赖于客户RFM宽表，需要造数据进行场景和结果验证
 
 -- 客户资产概览历史数据计算结果表定义，不做分区
-DROP TABLE IF EXISTS dw_rfm.`customer_assets_view_history`;
-CREATE TABLE IF NOT EXISTS dw_rfm.`customer_assets_view_history`(
+DROP TABLE IF EXISTS dw_rfm.`tenant_customer_assets_view_history`;
+CREATE TABLE IF NOT EXISTS dw_rfm.`tenant_customer_assets_view_history`(
 	`tenant` string,
 	`plat_code` string,
     `uni_shop_id` string,
@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`customer_assets_view_history`(
 	`stat_date` string,
 	`modified` string
 )
+PARTITIONED BY(part string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
 STORED AS TEXTFILE;
 
@@ -64,7 +65,7 @@ set pre12MonthEnd=add_months(${hiveconf:pre1MonthEnd},-11);
 set pre13MonthEnd=add_months(${hiveconf:pre1MonthEnd},-12);
 
 -- 对租户级的历史进行计算
-insert overwrite table dw_rfm.customer_assets_view_history
+insert overwrite table dw_rfm.tenant_customer_assets_view_history partition(part='${tenant}')
 select c.tenant,null as plat_code,null as uni_shop_id,null as shop_name,
 	if(c.prospective is null,0,c.prospective) as prospective,
 	if(c.active is null,0,c.active) as active,
@@ -89,8 +90,9 @@ from (
 			 when t.year_buy_times >= 1 then 'active'
 			 when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
 			 when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type
-			from dw_rfm.b_qqd_tenant_rfm t
-			where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+			from dw_rfm.b_qqd_tenant_rfm_tenants t
+			where t.part = '${tenant}'
+			and t.stat_date in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
 		) a
@@ -101,7 +103,7 @@ from (
 
 
 -- 平台级别的历史月底数据客户资产统计分析
-insert into table dw_rfm.customer_assets_view_history
+insert into table dw_rfm.tenant_customer_assets_view_history partition(part='${tenant}')
 select c.tenant,c.plat_code,null as uni_shop_id,null as shop_name,
 	if(c.prospective is null,0,c.prospective) as prospective,
 	if(c.active is null,0,c.active) as active,
@@ -126,8 +128,9 @@ from (
 			 when t.year_buy_times >= 1 then 'active'
 			 when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
 			 when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type
-			from dw_rfm.b_qqd_plat_rfm t
-			where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+			from dw_rfm.b_qqd_plat_rfm_tenants t
+			where t.part = '${tenant}'
+			and t.stat_date in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
 		) a
@@ -138,7 +141,7 @@ from (
 
 
 -- 店铺级别的历史月底客户资产统计分析
-insert into table dw_rfm.customer_assets_view_history
+insert into table dw_rfm.tenant_customer_assets_view_history partition(part='${tenant}')
 select c.tenant,c.plat_code,c.uni_shop_id,db.shop_name,
 	if(c.prospective is null,0,c.prospective) as prospective,
 	if(c.active is null,0,c.active) as active,
@@ -163,8 +166,9 @@ from (
 			when t.year_buy_times >= 1 then 'active'
 			when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
 			when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type
-			from dw_rfm.b_qqd_shop_rfm t
-			where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+			from dw_rfm.b_qqd_shop_rfm_tenants t
+			where t.part = '${tenant}'
+			and t.stat_date in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
 		) a
@@ -175,3 +179,5 @@ from (
 left outer join dw_base.b_std_tenant_shop db
 	on c.tenant=db.tenant and c.plat_code=db.plat_code and c.uni_shop_id =concat(db.plat_code,'|',db.shop_id)
 where db.tenant is not null;
+
+-- 需要对tenant_customer_assets_view_history下租户分区的数据同步到业务库中

@@ -1,4 +1,4 @@
-SET mapred.job.name='history_customer_repurchase_anlyze-客户历史月底复购分析';
+SET mapred.job.name='tenant_customer_repurchase_anlyze-租户客户历史月底复购分析';
 --set hive.execution.engine=mr;
 set hive.tez.container.size=6144;
 set hive.cbo.enable=true;
@@ -26,8 +26,8 @@ set hive.support.concurrency=false;
 -- 注：以下数据依赖于客户RFM宽表，需要造数据进行场景和结果验证
 
 -- 活跃客复购历史月底数据分析结果表
-DROP TABLE IF EXISTS dw_rfm.`customer_repurchase_anlyze_history`;
-CREATE TABLE IF NOT EXISTS dw_rfm.`customer_repurchase_anlyze_history`(
+DROP TABLE IF EXISTS dw_rfm.`tenant_customer_repurchase_anlyze_history`;
+CREATE TABLE IF NOT EXISTS dw_rfm.`tenant_customer_repurchase_anlyze_history`(
 	`tenant` string,
 	`plat_code` string,
     `uni_shop_id` string,
@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`customer_repurchase_anlyze_history`(
 	`stat_date` string,
 	`modified` string
 )
+PARTITIONED BY(part string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
 STORED AS TEXTFILE;
 
@@ -71,7 +72,7 @@ set pre13MonthEnd=add_months(${hiveconf:pre1MonthEnd},-12);
 set beforeAYear = add_months('${stat_date}',-12);
 
 -- 租户级数据客户类型识别及统计
-insert overwrite table dw_rfm.customer_repurchase_anlyze_history
+insert overwrite table dw_rfm.tenant_customer_repurchase_anlyze_history partition(part='${tenant}')
 select r.tenant,null as plat_code,null as uni_shop_id,null as shop_name,
 	sum(r.active) activeNum,sum(r.repurchase) repurNum,
 	case sum(r.active) when 0 then -1 else sum(r.repurchase)/sum(r.active) end as rate,
@@ -91,16 +92,17 @@ from (
 	if((t.year_buy_times >=2 and t.first_buy_time >= add_months(t.stat_date,-12)),1,0) new_repurchase,
 	if((t.year_buy_times >=1 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) active_old,
 	if((t.year_buy_times >=2 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) old_repurchase
-	from dw_rfm.b_qqd_tenant_rfm t
-	where part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
-			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
-			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
+	from dw_rfm.b_qqd_tenant_rfm_tenants t
+	where t.part = '${tenant}'
+		and t.stat_date in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+		${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
+		${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
 ) r
 group by r.tenant,r.stat_date;
 
 
 -- 平台级客户复购率计算
-insert into table dw_rfm.customer_repurchase_anlyze_history
+insert into table dw_rfm.tenant_customer_repurchase_anlyze_history partition(part='${tenant}')
 select r.tenant,r.plat_code,null as uni_shop_id,null as shop_name,
     sum(r.active) activeNum,sum(r.repurchase) repurNum,
     case sum(r.active) when 0 then -1 else sum(r.repurchase)/sum(r.active) end as rate,
@@ -120,8 +122,9 @@ from (
     if((t.year_buy_times >=2 and t.first_buy_time >= add_months(t.stat_date,-12)),1,0) new_repurchase,
     if((t.year_buy_times >=1 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) active_old,
     if((t.year_buy_times >=2 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) old_repurchase
-    from dw_rfm.b_qqd_plat_rfm t
-    where part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+    from dw_rfm.b_qqd_plat_rfm_tenants t
+    where t.part = '${tenant}'
+		and t.stat_date in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
 ) r
@@ -129,15 +132,15 @@ group by r.tenant,r.plat_code,r.stat_date;
 
 
 -- 店铺级客户复购率计算
-insert into table dw_rfm.customer_repurchase_anlyze_history
+insert into table dw_rfm.tenant_customer_repurchase_anlyze_history partition(part='${tenant}')
 select re.tenant,re.plat_code,re.uni_shop_id,db.shop_name,
-re.activeNum,re.repurNum,case re.activeNum when 0 then -1 else re.repurNum/re.activeNum end as rate,
-re.activeNewNum,re.newrepurNum,case re.activeNewNum when 0 then -1 else re.newrepurNum/re.activeNewNum end as new_rate,
-re.activeOldNum,re.oldrepurNum,case re.activeOldNum when 0 then -1 else re.oldrepurNum/re.activeOldNum end as old_rate,
-3 as type,
-1 as end_month,
-re.stat_date,
-${hiveconf:submitTime} as modified
+	re.activeNum,re.repurNum,case re.activeNum when 0 then -1 else re.repurNum/re.activeNum end as rate,
+	re.activeNewNum,re.newrepurNum,case re.activeNewNum when 0 then -1 else re.newrepurNum/re.activeNewNum end as new_rate,
+	re.activeOldNum,re.oldrepurNum,case re.activeOldNum when 0 then -1 else re.oldrepurNum/re.activeOldNum end as old_rate,
+	3 as type,
+	1 as end_month,
+	re.stat_date,
+	${hiveconf:submitTime} as modified
 from(
     select r.tenant,r.plat_code,r.uni_shop_id,r.stat_date,
     sum(r.active) activeNum,sum(r.repurchase) repurNum,
@@ -151,8 +154,9 @@ from(
         if((t.year_buy_times >=2 and t.first_buy_time >= add_months(t.stat_date,-12)),1,0) new_repurchase,
         if((t.year_buy_times >=1 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) active_old,
         if((t.year_buy_times >=2 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) old_repurchase
-        from dw_rfm.b_qqd_shop_rfm t
-        where part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+        from dw_rfm.b_qqd_shop_rfm_tenants t
+        where t.part = '${tenant}'
+		and t.stat_date in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
     ) r

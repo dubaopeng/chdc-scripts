@@ -92,7 +92,7 @@ from (
 	if((t.year_buy_times >=1 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) active_old,
 	if((t.year_buy_times >=2 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) old_repurchase
 	from dw_rfm.b_qqd_tenant_rfm t
-	where part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+	where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
 ) r
@@ -121,7 +121,7 @@ from (
     if((t.year_buy_times >=1 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) active_old,
     if((t.year_buy_times >=2 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) old_repurchase
     from dw_rfm.b_qqd_plat_rfm t
-    where part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+    where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
 ) r
@@ -152,7 +152,7 @@ from(
         if((t.year_buy_times >=1 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) active_old,
         if((t.year_buy_times >=2 and t.first_buy_time < add_months(t.stat_date,-12)),1,0) old_repurchase
         from dw_rfm.b_qqd_shop_rfm t
-        where part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
+        where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
 			${hiveconf:pre10MonthEnd},${hiveconf:pre11MonthEnd},${hiveconf:pre12MonthEnd},${hiveconf:pre13MonthEnd})
     ) r

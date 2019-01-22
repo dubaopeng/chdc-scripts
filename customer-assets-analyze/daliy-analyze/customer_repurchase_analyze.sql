@@ -83,7 +83,7 @@ from(
 		if((t.year_buy_times >=1 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) active_old,
 		if((t.year_buy_times >=2 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) old_repurchase
 		from dw_rfm.b_qqd_tenant_rfm t
-		where part='${stat_date}'
+		where t.part='${stat_date}'
 	) r
 	group by r.tenant
 
@@ -106,7 +106,7 @@ from(
 		if((t.year_buy_times >=1 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) active_old,
 		if((t.year_buy_times >=2 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) old_repurchase
 		from dw_rfm.b_qqd_plat_rfm t
-		where part='${stat_date}'
+		where t.part='${stat_date}'
 	) r
 	group by r.tenant,r.plat_code
 
@@ -131,7 +131,7 @@ from(
 			if((t.year_buy_times >=1 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) active_old,
 			if((t.year_buy_times >=2 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) old_repurchase
 			from dw_rfm.b_qqd_shop_rfm t
-			where part='${stat_date}'
+			where t.part='${stat_date}'
 		) r
 		group by r.tenant,r.plat_code,r.uni_shop_id
 	) re
