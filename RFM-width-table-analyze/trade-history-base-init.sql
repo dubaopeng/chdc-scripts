@@ -56,7 +56,7 @@ left join
 		uni_id,
 		uni_shop_id,
 		shop_id,
-		case when refund_fee = 'NULL' or refund_fee is NULL then payment else (payment - refund_fee) end as receive_payment,
+		case when lower(refund_fee) = 'null' or refund_fee is NULL then payment else (payment - refund_fee) end as receive_payment,
 		case when product_num is null then 1 else product_num end as product_num,
 		case when lower(trade_type) = 'step' and pay_time is not null then pay_time else created end as created
 	from dw_base.b_std_trade
