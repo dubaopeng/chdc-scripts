@@ -310,7 +310,7 @@ group by a.tenant,a.plat_code,a.uni_id,a.dmonth;
 --计算平台级的数据
 drop table if exists dw_rfm.b_sale_plat_every_month_all_temp;
 create table dw_rfm.b_sale_plat_every_month_all_temp as
-select t.tenant,t.plat_code,t.dmonth
+select t.tenant,t.plat_code,t.dmonth,
 	count(t.uni_id) as cus_num, -- 客户总数
 	sum(t.payments) as payments, -- 平台总金额
 	sum(t.payments)/sum(t.buy_times) as avg_price,--平均客单价
@@ -817,7 +817,7 @@ group by a.tenant,a.plat_code,a.uni_id,a.ddate;
 --计算平台级的数据
 drop table if exists dw_rfm.b_sale_plat_everyday_all_temp;
 create table dw_rfm.b_sale_plat_everyday_all_temp as
-select t.tenant,t.plat_code,t.ddate
+select t.tenant,t.plat_code,t.ddate,
 	count(t.uni_id) as cus_num, -- 客户总数
 	sum(t.payments) as payments, -- 平台总金额
 	sum(t.payments)/sum(t.buy_times) as avg_price--平均客单价

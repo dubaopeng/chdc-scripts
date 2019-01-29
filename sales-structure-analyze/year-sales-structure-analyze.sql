@@ -295,7 +295,7 @@ group by a.tenant,a.plat_code,a.uni_id,a.byear;
 --计算平台级年份KPI数据统计
 drop table if exists dw_rfm.b_sale_plat_every_year_all_temp;
 create table dw_rfm.b_sale_plat_every_year_all_temp as
-select t.tenant,t.plat_code,t.byear
+select t.tenant,t.plat_code,t.byear,
 	count(t.uni_id) as cus_num, -- 客户总数
 	sum(t.payments) as payments, -- 平台总金额
 	sum(t.payments)/sum(t.buy_times) as avg_price,--平均客单价
