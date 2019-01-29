@@ -62,7 +62,7 @@ from dw_rfm.tenant_active_customer_rf_history
 
 
 -- 创建活跃客户的RFM的RM指标表
-CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_active_customer_rm`(
+CREATE TABLE IF NOT EXISTS dw_rfm.`tenant_cxi_active_customer_rm`(
 	`tenant` string,
     `plat_code` string,
     `uni_shop_id` string,

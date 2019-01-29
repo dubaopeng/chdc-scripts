@@ -74,7 +74,7 @@ from (
 		from (
 			select a.tenant,a.type,count(a.type) num from(
 				select t.tenant,t.uni_id,
-				case when (t.earliest_time <= '${stat_date}' and t.first_buy_time is null) or t.first_buy_time > '${stat_date}' then 'prospective' 
+				case when (t.earliest_time is null or (t.earliest_time <= '${stat_date}' and t.first_buy_time is null)) or t.first_buy_time > '${stat_date}' then 'prospective' 
 				 when t.year_buy_times >= 1 then 'active'
 				 when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
 				 when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type
@@ -104,7 +104,7 @@ from (
 		from (
 			select a.tenant,a.plat_code,a.type,count(a.type) num from(
 				select t.tenant,t.plat_code,t.uni_id,
-				case when (t.earliest_time <= '${stat_date}' and t.first_buy_time is null) or t.first_buy_time > '${stat_date}' then 'prospective' 
+				case when (t.earliest_time is null or (t.earliest_time <= '${stat_date}' and t.first_buy_time is null)) or t.first_buy_time > '${stat_date}' then 'prospective' 
 				 when t.year_buy_times >= 1 then 'active'
 				 when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
 				 when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type
@@ -134,7 +134,7 @@ from (
 		from (
 			select a.tenant,a.plat_code,a.uni_shop_id,a.type,count(a.type) num from(
 				select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,
-				case when (t.earliest_time <= '${stat_date}' and t.first_buy_time is null) or t.first_buy_time > '${stat_date}' then 'prospective' 
+				case when (t.earliest_time is null or (t.earliest_time <= '${stat_date}' and t.first_buy_time is null)) or t.first_buy_time > '${stat_date}' then 'prospective' 
 				when t.year_buy_times >= 1 then 'active'
 				when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
 				when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type

@@ -1,0 +1,61 @@
+#销售结构分析-日数据
+eval 
+-connect 
+jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage 
+--username 
+dmadmin 
+--password 
+w1jaJywRtq1sdo 
+--driver 
+com.mysql.jdbc.Driver 
+--query
+delete@from@cix_online_sales_structs_day
+
+
+#销售结构分析-月数据
+eval 
+-connect 
+jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage 
+--username 
+dmadmin 
+--password 
+w1jaJywRtq1sdo 
+--driver 
+com.mysql.jdbc.Driver 
+--query
+delete@from@cix_online_sales_structs_month
+
+
+#销售结构分析-年数据
+eval 
+-connect 
+jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage 
+--username 
+dmadmin 
+--password 
+w1jaJywRtq1sdo 
+--driver 
+com.mysql.jdbc.Driver 
+--query
+delete@from@cix_online_sales_structs_year
+
+
+
+#sqoop 数据导出到mysql
+
+#销售结构分析-日数据
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_sales_structs_day" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_sales_structs_day" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+#销售结构分析-月数据
+
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_sales_structs_month" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_sales_structs_month" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+#销售结构分析-年数据
+
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_sales_structs_year" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_sales_structs_year" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+#计算结果通知同步
+
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_customer_analysis_notify" --export-dir "/apps/hive/warehouse/dw_rfm.db/sale_structs_analysis_notify" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+

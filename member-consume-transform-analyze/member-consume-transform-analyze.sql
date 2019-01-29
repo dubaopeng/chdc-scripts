@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_member_consume_transform`(
 	`plat_code` string,
     `uni_shop_id` string,
 	`card_plan_id` string,
-	`join_month` string, --会员加入月份 2018-12, 99合计行标识
+	`join_month` string, --会员加入月份 2018-12, all合计行标识
     `members` bigint,  --入会会员数
     `payments` double, --近一年消费金额
 	`f0` bigint,
@@ -201,6 +201,15 @@ select t1.tenant,null as plat_code,null as uni_shop_id,t1.card_plan_id,t1.join_m
 from dw_rfm.cix_online_member_consume_transform t1 
 where t1.part='${stat_date}'
 group by t1.tenant,t1.card_plan_id,t1.join_month;
+
+-- 需要解决union all产生的文件问题
+insert overwrite table dw_rfm.cix_online_member_consume_transform partition(part='${stat_date}')
+select tenant,plat_code,uni_shop_id,card_plan_id,join_month,members,payments,
+	  f0,f1,f2,f3,f4,f5,
+	  type,end_month,stat_date,modified
+from dw_rfm.cix_online_member_consume_transform
+where part='${stat_date}';
+
 
 --删除临时表
 drop table if exists dw_rfm.b_last14month_member_rfm;

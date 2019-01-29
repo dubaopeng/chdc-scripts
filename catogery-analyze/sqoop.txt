@@ -1,0 +1,60 @@
+#平台店铺有哪些行业有权限行业数据对比
+eval 
+-connect 
+jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage 
+--username 
+dmadmin 
+--password 
+w1jaJywRtq1sdo 
+--driver 
+com.mysql.jdbc.Driver 
+--query
+delete@from@cix_online_shop_has_permission_category@where@stat_date='${stat_date}'
+
+
+#行业客户资产数据
+eval 
+-connect 
+jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage 
+--username 
+dmadmin 
+--password 
+w1jaJywRtq1sdo 
+--driver 
+com.mysql.jdbc.Driver 
+--query
+delete@from@cix_online_category_customer_assets@where@stat_date='${stat_date}'
+
+#行业复购间隔数据
+eval 
+-connect 
+jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage 
+--username 
+dmadmin 
+--password 
+w1jaJywRtq1sdo 
+--driver 
+com.mysql.jdbc.Driver 
+--query
+delete@from@cix_online_category_purchase_interval@where@stat_date='${stat_date}'
+
+
+
+#sqoop 数据导出到mysql
+
+#平台店铺有哪些行业有权限行业数据对比
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_shop_has_permission_category" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_shop_has_permission_category" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+#行业客户资产数据
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_category_customer_assets" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_category_customer_assets" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+#行业复购间隔数据
+
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_category_purchase_interval" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_category_purchase_interval" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+#计算结果通知同步
+
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_customer_analysis_notify" --export-dir "/apps/hive/warehouse/dw_rfm.db/category_data_analysis_notify" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+

@@ -259,22 +259,22 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.dmonth as date_col,
 	   if(a.new_repeat_num is null,0,a.new_repeat_num) as new_repeat_num,
 	   if(a.new_repeat_rate is null,0,a.new_repeat_rate) as new_repeat_rate,
 	   
-	   if(a.new_one_price if null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
-	   if(a.new_muti_price if null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
-	   if(a.new_muti_avg_times if null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
+	   if(a.new_one_price is null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
+	   if(a.new_muti_price is null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
+	   if(a.new_muti_avg_times is null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
 	   
-	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
-	   if(a.old_rate is null,0,a.old_rate) as old_rate,
-	   if(a.old_payments is null,0,a.old_payments) as old_payments,
-	   if(a.old_payments_rate is null,0,a.old_payments_rate) as old_payments_rate,
-	   if(a.old_avg_price is null,0,a.old_avg_price) as old_avg_price,
-	   if(a.old_avg_times is null,0,a.old_avg_times) as old_avg_times,
-	   if(a.old_repeat_num is null,0,a.old_repeat_num) as old_repeat_num,
-	   if(a.old_repeat_rate is null,0,a.old_repeat_rate) as old_repeat_rate,
+	   if(b.old_cus_num is null,0,b.old_cus_num) as old_cus_num,
+	   if(b.old_rate is null,0,b.old_rate) as old_rate,
+	   if(b.old_payments is null,0,b.old_payments) as old_payments,
+	   if(b.old_payments_rate is null,0,b.old_payments_rate) as old_payments_rate,
+	   if(b.old_avg_price is null,0,b.old_avg_price) as old_avg_price,
+	   if(b.old_avg_times is null,0,b.old_avg_times) as old_avg_times,
+	   if(b.old_repeat_num is null,0,b.old_repeat_num) as old_repeat_num,
+	   if(b.old_repeat_rate is null,0,b.old_repeat_rate) as old_repeat_rate,
 	 
-	   if(a.old_one_price is null,0,a.old_one_price) as old_one_price,
-	   if(a.old_muti_price is null,0,a.old_muti_price) as old_muti_price,
-	   if(a.old_muti_avg_times is null,0,a.old_muti_avg_times) as old_muti_avg_times,
+	   if(b.old_one_price is null,0,b.old_one_price) as old_one_price,
+	   if(b.old_muti_price is null,0,b.old_muti_price) as old_muti_price,
+	   if(b.old_muti_avg_times is null,0,b.old_muti_avg_times) as old_muti_avg_times,
 	   
 	   3 as type,
 	   '${stat_date}' as stat_date,
@@ -428,22 +428,22 @@ select t.tenant,t.plat_code,null as uni_shop_id,t.dmonth as date_col,
 	   if(a.new_repeat_num is null,0,a.new_repeat_num) as new_repeat_num,
 	   if(a.new_repeat_rate is null,0,a.new_repeat_rate) as new_repeat_rate,
 	   
-	   if(a.new_one_price if null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
-	   if(a.new_muti_price if null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
-	   if(a.new_muti_avg_times if null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
+	   if(a.new_one_price is null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
+	   if(a.new_muti_price is null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
+	   if(a.new_muti_avg_times is null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
 	   
-	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
-	   if(a.old_rate is null,0,a.old_rate) as old_rate,
-	   if(a.old_payments is null,0,a.old_payments) as old_payments,
-	   if(a.old_payments_rate is null,0,a.old_payments_rate) as old_payments_rate,
-	   if(a.old_avg_price is null,0,a.old_avg_price) as old_avg_price,
-	   if(a.old_avg_times is null,0,a.old_avg_times) as old_avg_times,
-	   if(a.old_repeat_num is null,0,a.old_repeat_num) as old_repeat_num,
-	   if(a.old_repeat_rate is null,0,a.old_repeat_rate) as old_repeat_rate,
+	   if(b.old_cus_num is null,0,b.old_cus_num) as old_cus_num,
+	   if(b.old_rate is null,0,b.old_rate) as old_rate,
+	   if(b.old_payments is null,0,b.old_payments) as old_payments,
+	   if(b.old_payments_rate is null,0,b.old_payments_rate) as old_payments_rate,
+	   if(b.old_avg_price is null,0,b.old_avg_price) as old_avg_price,
+	   if(b.old_avg_times is null,0,b.old_avg_times) as old_avg_times,
+	   if(b.old_repeat_num is null,0,b.old_repeat_num) as old_repeat_num,
+	   if(b.old_repeat_rate is null,0,b.old_repeat_rate) as old_repeat_rate,
 	 
-	   if(a.old_one_price is null,0,a.old_one_price) as old_one_price,
-	   if(a.old_muti_price is null,0,a.old_muti_price) as old_muti_price,
-	   if(a.old_muti_avg_times is null,0,a.old_muti_avg_times) as old_muti_avg_times,
+	   if(b.old_one_price is null,0,b.old_one_price) as old_one_price,
+	   if(b.old_muti_price is null,0,b.old_muti_price) as old_muti_price,
+	   if(b.old_muti_avg_times is null,0,b.old_muti_avg_times) as old_muti_avg_times,
 	   
 	   2 as type,
 	   '${stat_date}' as stat_date,
@@ -594,22 +594,22 @@ select t.tenant,null as plat_code,null as uni_shop_id,t.dmonth as date_col,
 	   if(a.new_repeat_num is null,0,a.new_repeat_num) as new_repeat_num,
 	   if(a.new_repeat_rate is null,0,a.new_repeat_rate) as new_repeat_rate,
 	   
-	   if(a.new_one_price if null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
-	   if(a.new_muti_price if null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
-	   if(a.new_muti_avg_times if null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
+	   if(a.new_one_price is null,0,a.new_one_price) as new_one_price,  --新客单次购买客单价
+	   if(a.new_muti_price is null,0,a.new_muti_price) as new_muti_price, --新客多次购买客单价
+	   if(a.new_muti_avg_times is null,0,a.new_muti_avg_times) as new_muti_avg_times,--新客多次购买平均购买次数
 	   
-	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
-	   if(a.old_rate is null,0,a.old_rate) as old_rate,
-	   if(a.old_payments is null,0,a.old_payments) as old_payments,
-	   if(a.old_payments_rate is null,0,a.old_payments_rate) as old_payments_rate,
-	   if(a.old_avg_price is null,0,a.old_avg_price) as old_avg_price,
-	   if(a.old_avg_times is null,0,a.old_avg_times) as old_avg_times,
-	   if(a.old_repeat_num is null,0,a.old_repeat_num) as old_repeat_num,
-	   if(a.old_repeat_rate is null,0,a.old_repeat_rate) as old_repeat_rate,
+	   if(b.old_cus_num is null,0,b.old_cus_num) as old_cus_num,
+	   if(b.old_rate is null,0,b.old_rate) as old_rate,
+	   if(b.old_payments is null,0,b.old_payments) as old_payments,
+	   if(b.old_payments_rate is null,0,b.old_payments_rate) as old_payments_rate,
+	   if(b.old_avg_price is null,0,b.old_avg_price) as old_avg_price,
+	   if(b.old_avg_times is null,0,b.old_avg_times) as old_avg_times,
+	   if(b.old_repeat_num is null,0,b.old_repeat_num) as old_repeat_num,
+	   if(b.old_repeat_rate is null,0,b.old_repeat_rate) as old_repeat_rate,
 	 
-	   if(a.old_one_price is null,0,a.old_one_price) as old_one_price,
-	   if(a.old_muti_price is null,0,a.old_muti_price) as old_muti_price,
-	   if(a.old_muti_avg_times is null,0,a.old_muti_avg_times) as old_muti_avg_times,
+	   if(b.old_one_price is null,0,b.old_one_price) as old_one_price,
+	   if(b.old_muti_price is null,0,b.old_muti_price) as old_muti_price,
+	   if(b.old_muti_avg_times is null,0,b.old_muti_avg_times) as old_muti_avg_times,
 	   
 	   1 as type,
 	   '${stat_date}' as stat_date,
@@ -778,11 +778,11 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.ddate as date_col,
 	   if(a.new_payments_rate is null,0,a.new_payments_rate) as new_payments_rate,
 	   if(a.new_avg_price is null,0,a.new_avg_price) as new_avg_price,
 	   
-	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
-	   if(a.old_rate is null,0,a.old_rate) as old_rate,
-	   if(a.old_payments is null,0,a.old_payments) as old_payments,
-	   if(a.old_payments_rate is null,0,a.old_payments_rate) as old_payments_rate,
-	   if(a.old_avg_price is null,0,a.old_avg_price) as old_avg_price,
+	   if(b.old_cus_num is null,0,b.old_cus_num) as old_cus_num,
+	   if(b.old_rate is null,0,b.old_rate) as old_rate,
+	   if(b.old_payments is null,0,b.old_payments) as old_payments,
+	   if(b.old_payments_rate is null,0,b.old_payments_rate) as old_payments_rate,
+	   if(b.old_avg_price is null,0,b.old_avg_price) as old_avg_price,
 	   
 	   3 as type,
 	   '${stat_date}' as stat_date,
@@ -897,11 +897,11 @@ select t.tenant,t.plat_code,null as uni_shop_id,t.ddate as date_col,
 	   if(a.new_payments_rate is null,0,a.new_payments_rate) as new_payments_rate,
 	   if(a.new_avg_price is null,0,a.new_avg_price) as new_avg_price,
 	   
-	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
-	   if(a.old_rate is null,0,a.old_rate) as old_rate,
-	   if(a.old_payments is null,0,a.old_payments) as old_payments,
-	   if(a.old_payments_rate is null,0,a.old_payments_rate) as old_payments_rate,
-	   if(a.old_avg_price is null,0,a.old_avg_price) as old_avg_price,
+	   if(b.old_cus_num is null,0,b.old_cus_num) as old_cus_num,
+	   if(b.old_rate is null,0,b.old_rate) as old_rate,
+	   if(b.old_payments is null,0,b.old_payments) as old_payments,
+	   if(b.old_payments_rate is null,0,b.old_payments_rate) as old_payments_rate,
+	   if(b.old_avg_price is null,0,b.old_avg_price) as old_avg_price,
 	   
 	   2 as type,
 	   '${stat_date}' as stat_date,
@@ -1021,11 +1021,11 @@ select t.tenant,null as plat_code,null as uni_shop_id,t.ddate as date_col,
 	   if(a.new_payments_rate is null,0,a.new_payments_rate) as new_payments_rate,
 	   if(a.new_avg_price is null,0,a.new_avg_price) as new_avg_price,
 	   
-	   if(a.old_cus_num is null,0,a.old_cus_num) as old_cus_num,
-	   if(a.old_rate is null,0,a.old_rate) as old_rate,
-	   if(a.old_payments is null,0,a.old_payments) as old_payments,
-	   if(a.old_payments_rate is null,0,a.old_payments_rate) as old_payments_rate,
-	   if(a.old_avg_price is null,0,a.old_avg_price) as old_avg_price,
+	   if(b.old_cus_num is null,0,b.old_cus_num) as old_cus_num,
+	   if(b.old_rate is null,0,b.old_rate) as old_rate,
+	   if(b.old_payments is null,0,b.old_payments) as old_payments,
+	   if(b.old_payments_rate is null,0,b.old_payments_rate) as old_payments_rate,
+	   if(b.old_avg_price is null,0,b.old_avg_price) as old_avg_price,
 	   
 	   1 as type,
 	   '${stat_date}' as stat_date,

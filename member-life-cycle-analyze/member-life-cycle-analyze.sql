@@ -46,7 +46,7 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,t.ismember,t.card_plan_id,t.m
 	when t.year_buy_times = 1 and t.first_buy_time <= add_months('${stat_date}',-12) then 'active_old'
 	when t.year_buy_times >= 2 and t.first_buy_time <= add_months('${stat_date}',-12) then 'phurce_old'
 	when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
-	when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as custype
+	when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else 'qianke' end as custype
 from
 (
 	select rfm.tenant,rfm.plat_code,rfm.uni_shop_id,rfm.uni_id,
@@ -238,6 +238,15 @@ group by t1.tenant,t1.card_plan_id,t1.grade;
 
 -- 删除中间临时表
 drop table if exists dw_rfm.b_customer_member_rfm_temp;
+
+-- 需要解决union all产生的文件问题
+insert overwrite table dw_rfm.cix_online_member_life_cycle partition(part='${stat_date}')
+select tenant,plat_code,uni_shop_id,card_plan_id,grade,
+	  prospective,active_new,phurce_new,active_old,phurce_old,silent,
+	  loss,whole,type,end_month,stat_date,modified
+from dw_rfm.cix_online_member_life_cycle
+where part='${stat_date}';
+
 
 -- 统计完成后需要将表 dw_rfm.cix_online_member_life_cycle 的分区${stat_date}下的数据同步给业务库
 

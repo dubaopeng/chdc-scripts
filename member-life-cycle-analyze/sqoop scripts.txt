@@ -1,1 +1,16 @@
+
+#删除已存在的结果数据
+eval 
+-connect 
+jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage 
+--username 
+dmadmin 
+--password 
+w1jaJywRtq1sdo 
+--driver 
+com.mysql.jdbc.Driver 
+--query
+delete@from@cix_online_member_life_cycle@where@stat_date='${stat_date}'
+
+
 export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_member_life_cycle" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_member_life_cycle/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"

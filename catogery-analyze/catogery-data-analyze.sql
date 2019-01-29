@@ -27,7 +27,7 @@ set hive.support.concurrency=false;
 -- 子订单：dw_base.b_std_order
 -- 订单表：dw_base.b_std_trade
 -- 商品信息: dw_base.b_std_product (需接入)
--- 店铺类目表：b_plat_shop_category (需接入)
+-- 店铺类目表：dw_base.b_plat_shop_category (需接入)
 
 
 --首先计算近两年的历史订单记录
@@ -411,5 +411,9 @@ from(
 ) r1
 group by r1.parent_category_id,r1.interval_days;
 
+-- 需要对结果数据导出到mysql中
+-- cix_online_shop_has_permission_category
+-- cix_online_category_customer_assets
+-- cix_online_category_purchase_interval
 
 
