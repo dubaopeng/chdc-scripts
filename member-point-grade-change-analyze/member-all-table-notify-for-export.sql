@@ -1,4 +1,4 @@
-SET mapred.job.name='customer-asserts-notify-writter';
+SET mapred.job.name='member-all-table-notify';
 --set hive.execution.engine=mr;
 set hive.tez.container.size=6144;
 set hive.cbo.enable=true;
@@ -25,8 +25,8 @@ set hive.support.concurrency=false;
 -- 设置任务提交时间
 set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 
--- 将两个表的记录插入通知表
-CREATE TABLE IF NOT EXISTS dw_rfm.`customer_asserts_analysis_notify`(
+-- 将会员计算相关的结果表的记录插入通知表
+CREATE TABLE IF NOT EXISTS dw_rfm.`member_all_table_notify`(
 	`table_name` string,
     `available` string,
     `modified` string,
@@ -35,15 +35,19 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`customer_asserts_analysis_notify`(
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS TEXTFILE;
 
-insert overwrite table dw_rfm.`customer_asserts_analysis_notify` 
-select table_name,a.available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+insert overwrite table dw_rfm.`member_all_table_notify` 
+select table_name,a.available,
+	${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
 from 
 (
 	select 1 as available
 ) a
-lateral view explode(split('cix_online_customer_assets_view,
-							cix_online_customer_repurchase_anlyze,
-							cix_online_customer_retention_analyze',',')) tname as table_name;
+lateral view explode(split('cix_online_member_point_grade_change,
+							cix_online_member_grade_transform,
+							cix_online_card_store_point,
+							cix_online_point_store_trend,
+							cix_online_member_life_cycle,
+							cix_online_member_consume_transform',',')) tname as table_name;
 
 -- TODO 接下来使用sqoop导出上面几个表的数据到mysql表中
 

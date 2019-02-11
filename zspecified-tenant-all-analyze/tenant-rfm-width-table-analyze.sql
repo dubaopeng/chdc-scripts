@@ -1,6 +1,6 @@
 SET mapred.job.name='tenant-rfm-width-table-指定租户的RFM宽表数据分析';
 --set hive.execution.engine=mr;
-set hive.tez.container.size=6144;
+set hive.tez.container.size=16144;
 set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
@@ -43,29 +43,36 @@ STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
 
 -- 查询租户各平台店铺的订单数据
 insert overwrite table dw_rfm.b_rfm_tenants_history_trade partition(part='${tenant}')
-select
-	'${tenant}' as tenant,
-	plat_code,
-	shop_id,
-	uni_shop_id,
-	uni_id,
-	case when lower(refund_fee) = 'null' or refund_fee is null then payment else (payment - refund_fee) end as receive_payment,
-	case when product_num is null then 1 else product_num end as product_num,
-	case when lower(trade_type) = 'step' and pay_time is not null then pay_time else created end as created
-from dw_base.b_std_trade
-where
-  part <= substr('${stat_date}',1,7)
-  and (created is not NULL  and substr(created,1,10) <= '${stat_date}')
-  and uni_id is not NULL 
-  and payment is not NULL
-  and order_status in ('WAIT_SELLER_SEND_GOODS','SELLER_CONSIGNED_PART','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','TRADE_FINISHED','PAID_FORBID_CONSIGN','ORDER_RECEIVED','TRADE_PAID')
-  and plat_code in(
-	select plat_code from dw_base.b_std_tenant_shop where tenant='${tenant}'
-  )
-  and shop_id in(
-	select shop_id from dw_base.b_std_tenant_shop where tenant='${tenant}'
-  );
-
+select '${tenant}' as tenant,
+		a.plat_code,
+		a.shop_id,
+		b.uni_shop_id,
+		b.uni_id,
+		b.receive_payment,
+		b.product_num,
+		b.created	
+from (
+	select plat_code,shop_id from dw_base.b_std_tenant_shop where tenant='${tenant}'
+) a
+left join(
+	select
+		plat_code,
+		shop_id,
+		uni_shop_id,
+		uni_id,
+		case when lower(refund_fee) = 'null' or refund_fee is null then payment else (payment - refund_fee) end as receive_payment,
+		case when product_num is null then 1 else product_num end as product_num,
+		case when lower(trade_type) = 'step' and pay_time is not null then pay_time else created end as created
+	from dw_base.b_std_trade
+	where
+	  part <= substr('${stat_date}',1,7)
+	  and (created is not NULL  and substr(created,1,10) <= '${stat_date}')
+	  and uni_id is not NULL 
+	  and payment is not NULL
+	  and order_status in ('WAIT_SELLER_SEND_GOODS','SELLER_CONSIGNED_PART','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','TRADE_FINISHED','PAID_FORBID_CONSIGN','ORDER_RECEIVED','TRADE_PAID')
+) b
+on a.plat_code=b.plat_code and a.shop_id=b.shop_id
+where b.plat_code is not null and b.shop_id is not null;
 
 -- 接下来基于上面这个订单结果数据，计算租户级、平台级、店铺级相关的RFM宽表
 
@@ -254,11 +261,11 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,
 	   case when r.btyear_buy_num is null then 0 else r.btyear_buy_num end as btyear_buy_num
 from 
 (
-	select c1.tenant,c2.plat_code,c2.uni_shop_id,c1.uni_id,c1.modified 
-	from dw_base.b_std_customer c1
+	select c1.tenant,c2.plat_code,c2.uni_shop_id,c1.uni_id,c1.modified from 
+	(select tenant,uni_id,modified from dw_base.b_std_customer where tenant='${tenant}') c1
 	left join dw_base.b_std_shop_customer_rel c2
 	on c1.uni_id = c2.uni_id
-	where c2.plat_code is not null
+	where c2.plat_code is not null and c2.uni_shop_id is not null
 )t
 left outer join
 (
@@ -288,7 +295,6 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`b_plat_first_buy_history_temp`(
 	`tenant` string,
 	`plat_code` string,
 	`uni_id` string,
-    `earliest_time` string,
 	`first_buy_time` string,
 	`first_payment` double,
     `second_buy_time` string
@@ -371,7 +377,7 @@ from (
 ) r
 left outer join 
 	(
-		select tenant,plat_code,uni_id,earliest_time,first_buy_time,first_payment,second_buy_time 
+		select tenant,plat_code,uni_id,first_buy_time,first_payment,second_buy_time 
 		from dw_rfm.b_plat_first_buy_history_temp where part='${tenant}' and stat_date='${stat_date}'
 	)t
 	on r.tenant = t.tenant and r.plat_code=t.plat_code and r.uni_id=t.uni_id;
@@ -380,7 +386,6 @@ left outer join
 CREATE TABLE IF NOT EXISTS dw_rfm.`b_tenant_first_buy_history_temp`(
 	`tenant` string,
 	`uni_id` string,
-    `earliest_time` string,
 	`first_buy_time` string,
 	`first_payment` double,
     `second_buy_time` string
@@ -461,7 +466,7 @@ from (
 ) r
 left outer join
 	(
-		select tenant,uni_id,earliest_time,first_buy_time,first_payment,second_buy_time
+		select tenant,uni_id,first_buy_time,first_payment,second_buy_time
 		from dw_rfm.b_tenant_first_buy_history_temp
 		where part='${tenant}' and stat_date='${stat_date}'
 	) t

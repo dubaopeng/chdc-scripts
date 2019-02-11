@@ -610,19 +610,24 @@ STORED AS TEXTFILE;
 
 insert overwrite table dw_rfm.cix_online_member_grade_transform partition(part='${stat_date}')
 select r.card_plan_id,r.nowgrade,r.oldgrade,r.members,1 as rangetype,'${stat_date}' as stat_date,${hiveconf:submitTime} as modified 
-from dw_rfm.b_yestoday_member_grade_change_temp r
-union all
+from dw_rfm.b_yestoday_member_grade_change_temp r;
+
+insert into table dw_rfm.cix_online_member_grade_transform partition(part='${stat_date}')
 select r1.card_plan_id,r1.nowgrade,r1.oldgrade,r1.members,2 as rangetype,'${stat_date}' as stat_date,${hiveconf:submitTime} as modified 
-from dw_rfm.b_thisweek_member_grade_change_temp r1
-union all
+from dw_rfm.b_thisweek_member_grade_change_temp r1;
+
+insert into table dw_rfm.cix_online_member_grade_transform partition(part='${stat_date}')
 select r2.card_plan_id,r2.nowgrade,r2.oldgrade,r2.members,3 as rangetype,'${stat_date}' as stat_date,${hiveconf:submitTime} as modified 
-from dw_rfm.b_thismonth_member_grade_change_temp r2
-union all
+from dw_rfm.b_thismonth_member_grade_change_temp r2;
+
+insert into table dw_rfm.cix_online_member_grade_transform partition(part='${stat_date}')
 select r3.card_plan_id,r3.nowgrade,r3.oldgrade,r3.members,4 as rangetype,'${stat_date}' as stat_date,${hiveconf:submitTime} as modified 
-from dw_rfm.b_last7day_member_grade_change_temp r3
-union all
+from dw_rfm.b_last7day_member_grade_change_temp r3;
+
+insert into table dw_rfm.cix_online_member_grade_transform partition(part='${stat_date}')
 select r4.card_plan_id,r4.nowgrade,r4.oldgrade,r4.members,5 as rangetype,'${stat_date}' as stat_date,${hiveconf:submitTime} as modified 
 from dw_rfm.b_last30day_member_grade_change_temp r4;
+
 
 -- 删除中间临时表
 drop table if exists dw_rfm.b_point_change_analyze_temp;

@@ -1,6 +1,6 @@
 SET mapred.job.name='tenant_purchase_interval_history-租户的复购间隔历史月底数据分析';
 --set hive.execution.engine=mr;
-set hive.tez.container.size=6144;
+set hive.tez.container.size=16144;
 set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
@@ -63,8 +63,7 @@ insert overwrite table dw_rfm.tenant_purchase_interval_history partition(part='$
 select re.tenant,re.plat_code,re.uni_shop_id,re.customer_type,re.interval_days,re.customer_num,re.type,
 	   re.stat_date,
 	   ${hiveconf:submitTime} as modified
-from
-(
+from(
 	-- 复购客复购间隔分析
 	select a.tenant,a.plat_code,a.uni_shop_id,a.customer_type,a.interval_days,a.customer_num,a.type,a.stat_date
 	from(
@@ -167,7 +166,7 @@ from
 ) re;
 
 -- sqoop导入需要文件
-insert overwrite table dw_rfm.c partition(part='${tenant}') 
+insert overwrite table dw_rfm.tenant_purchase_interval_history partition(part='${tenant}') 
 select re.tenant,re.plat_code,re.uni_shop_id,re.customer_type,re.interval_days,
 	   re.customer_num,
 	   re.type,

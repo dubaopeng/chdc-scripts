@@ -81,14 +81,14 @@ from (
 	  cast(concat_ws('',collect_set(if(b.type='active',b.num,''))) as bigint) as active,
 	  cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) as silent,
 	  cast(concat_ws('',collect_set(if(b.type='loss',b.num,''))) as bigint) as loss,
-	  sum(if(b.type='0',0,b.num)) as whole
+	  sum(b.num) as whole
 	from (
 		select a.tenant,a.type,a.stat_date,count(a.type) num from(
 			select t.tenant,t.uni_id, t.stat_date,
 			case when (t.earliest_time is null or (t.earliest_time <= t.stat_date and t.first_buy_time is null)) or t.first_buy_time > t.stat_date then 'prospective' 
 			 when t.year_buy_times >= 1 then 'active'
 			 when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
-			 when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type
+			 when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else 'prospective' end as type
 			from dw_rfm.b_qqd_tenant_rfm t
 			where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
@@ -118,14 +118,14 @@ from (
 	  cast(concat_ws('',collect_set(if(b.type='active',b.num,''))) as bigint) as active,
 	  cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) as silent,
 	  cast(concat_ws('',collect_set(if(b.type='loss',b.num,''))) as bigint) as loss,
-	  sum(if(b.type='0',0,b.num)) as whole
+	  sum(b.num) as whole
 	from (
 		select a.tenant,a.plat_code,a.type,a.stat_date,count(a.type) num from(
 			select t.tenant,t.plat_code,t.uni_id,t.stat_date,
 			case when (t.earliest_time is null or (t.earliest_time <= t.stat_date and t.first_buy_time is null)) or t.first_buy_time > t.stat_date then 'prospective' 
 			 when t.year_buy_times >= 1 then 'active'
 			 when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
-			 when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type
+			 when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else 'prospective' end as type
 			from dw_rfm.b_qqd_plat_rfm t
 			where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},
@@ -155,14 +155,14 @@ from (
 	  cast(concat_ws('',collect_set(if(b.type='active',b.num,''))) as bigint) as active,
 	  cast(concat_ws('',collect_set(if(b.type='silent',b.num,''))) as bigint) as silent,
 	  cast(concat_ws('',collect_set(if(b.type='loss',b.num,''))) as bigint) as loss,
-	  sum(if(b.type='0',0,b.num)) as whole
+	  sum(b.num) as whole
 	from (
 		select a.tenant,a.plat_code,a.uni_shop_id,a.type,a.stat_date,count(a.type) num from(
 			select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,t.stat_date,
 			case when (t.earliest_time is null or (t.earliest_time <= t.stat_date and t.first_buy_time is null)) or t.first_buy_time > t.stat_date then 'prospective' 
 			when t.year_buy_times >= 1 then 'active'
 			when t.year_buy_times=0 and t.tyear_buy_times>=1 then 'silent'
-			when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else '0' end as type
+			when t.year_buy_times=0 and t.tyear_buy_times=0 and t.btyear_buy_times>=1 then 'loss' else 'prospective' end as type
 			from dw_rfm.b_qqd_shop_rfm t
 			where t.part in(${hiveconf:pre1MonthEnd},${hiveconf:pre2MonthEnd},${hiveconf:pre3MonthEnd},${hiveconf:pre4MonthEnd},
 			${hiveconf:pre5MonthEnd},${hiveconf:pre6MonthEnd},${hiveconf:pre7MonthEnd},${hiveconf:pre8MonthEnd},${hiveconf:pre9MonthEnd},

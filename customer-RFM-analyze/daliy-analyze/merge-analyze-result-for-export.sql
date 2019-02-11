@@ -115,19 +115,15 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_customer_analysis_notify`(
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS TEXTFILE;
 
-insert overwrite table dw_rfm.`cix_online_customer_analysis_notify`
-select a.table_name,a.available,a.modified,a.stat_date
-from(
-	select 'cix_online_active_customer_rm' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-	union all
-	select 'cix_online_active_customer_rf' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-	union all
-	select 'cix_online_customer_purchase_interval' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-) a;
-
-insert overwrite table dw_rfm.cix_online_customer_analysis_notify
-	select a.table_name,a.available,a.modified,a.stat_date 
-	from dw_rfm.cix_online_customer_analysis_notify a;
+insert overwrite table dw_rfm.`cix_online_customer_analysis_notify` 
+select table_name,a.available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+from 
+(
+	select 1 as available
+) a
+lateral view explode(split('cix_online_active_customer_rm,
+							cix_online_active_customer_rf,
+							cix_online_customer_purchase_interval',',')) tname as table_name;
 
 -- TODO 接下来使用sqoop导出上面几个表的数据到mysql表中
 

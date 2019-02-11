@@ -174,7 +174,7 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`tenant_history_rf_temp`(
 	`customer_num` bigint,
 	`total_payment` double,
 	`total_times` bigint,
-    `total_num` total_num
+    `total_num` bigint
 )
 partitioned by(part string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
@@ -266,8 +266,9 @@ from
 (
     select t.*,
 	case when b.customer_num is null then 0 else b.customer_num end as bcusnum
-    from dw_rfm.tenant_history_rf_result t
-	where t.part='${tenant}'
+	from (
+		select c.* from dw_rfm.tenant_history_rf_result c where c.part='${tenant}'
+	) t
     left outer join
 	(select tenant,customer_num,stat_date from dw_rfm.tenant_history_rf_result 
 		where part='${tenant}' and recency =99 and frequency=99
@@ -433,7 +434,9 @@ from
 (
     select t.*,
 	case when b.customer_num is null then 0 else b.customer_num end as bcusnum
-    from dw_rfm.tenant_history_rm_result t where t.part='${tenant}'
+	from (
+		select c.* from dw_rfm.tenant_history_rm_result c where c.part='${tenant}'
+	) t
     left outer join
 	(select tenant,customer_num,stat_date,interval_type from dw_rfm.tenant_history_rm_result 
 		where part='${tenant}' and recency =99 and monetary=99

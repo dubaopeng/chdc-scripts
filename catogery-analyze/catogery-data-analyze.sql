@@ -355,8 +355,8 @@ STORED AS TEXTFILE;
 
 insert overwrite table dw_rfm.`cix_online_category_customer_assets`
 select a.parent_category_id,a.rate as active_customer_rate,
-a.new_rate as new_customer_rate,a.old_rate as old_customer_rate,
-b.retention_rate,'${stat_date}' as stat_date
+		a.new_rate as new_customer_rate,a.old_rate as old_customer_rate,
+		b.retention_rate,'${stat_date}' as stat_date
 from dw_rfm.b_category_repurchase_temp a
 join dw_rfm.b_category_retention_temp b
 on a.parent_category_id=b.parent_category_id;
@@ -410,6 +410,12 @@ from(
 	on a1.plat_code = b1.plat_code and a1.uni_shop_id=b1.uni_shop_id
 ) r1
 group by r1.parent_category_id,r1.interval_days;
+
+--解决union all的目录无法导出问题
+insert overwrite table dw_rfm.cix_online_category_purchase_interval
+select parent_category_id,customer_type,interval_days,customer_num,stat_date
+from dw_rfm.cix_online_category_purchase_interval;
+
 
 -- 需要对结果数据导出到mysql中
 -- cix_online_shop_has_permission_category

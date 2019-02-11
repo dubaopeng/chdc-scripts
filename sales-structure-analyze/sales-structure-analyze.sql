@@ -91,14 +91,13 @@ select
 	t.tenant,
 	t.plat_code,
 	t.uni_shop_id,
-	t.shop_id,
 	t.dmonth, --月份
 	count(t.uni_id) cus_num, -- 客户数量
 	sum(t.payments) payments, -- 成交总金额
 	sum(t.payments)/sum(t.buy_times) as avg_price,--平均客单价
 	sum(t.buy_times)/count(t.uni_id) as avg_times -- 平均购买次数
 from dw_rfm.b_sales_analyze_trade_temp t
-group by t.plat_code,t.uni_shop_id,t.shop_id,t.dmonth;
+group by t.tenant,t.plat_code,t.uni_shop_id,t.dmonth;
 
 
 --使用每月客户数据，和RFM宽表进行关联，识别新客和回头客
@@ -666,13 +665,12 @@ select
 	t.tenant,
 	t.plat_code,
 	t.uni_shop_id,
-	t.shop_id,
 	t.ddate, --日期
 	count(t.uni_id) cus_num, -- 客户数量
 	sum(t.payments) payments, -- 成交总金额
 	sum(t.payments)/sum(t.buy_times) as avg_price --平均客单价
 from dw_rfm.b_sales_analyze_everyday_trade_temp t
-group by t.tenant,t.plat_code,t.uni_shop_id,t.shop_id,t.ddate;
+group by t.tenant,t.plat_code,t.uni_shop_id,t.ddate;
 
 --每日新客数据计算
 drop table if exists dw_rfm.b_sale_new_customer_everyday_result_temp;
@@ -941,7 +939,7 @@ group by a.tenant,a.uni_id,a.ddate;
 --计算平台级的数据
 drop table if exists dw_rfm.b_sale_tenant_everyday_all_temp;
 create table dw_rfm.b_sale_tenant_everyday_all_temp as
-select t.tenant,t.ddate
+select t.tenant,t.ddate,
 	count(t.uni_id) as cus_num, -- 客户总数
 	sum(t.payments) as payments, -- 平台总金额
 	sum(t.payments)/sum(t.buy_times) as avg_price--平均客单价

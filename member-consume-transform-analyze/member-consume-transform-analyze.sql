@@ -183,8 +183,10 @@ select t.tenant,t.plat_code,null as uni_shop_id,t.card_plan_id,t.join_month,
 	${hiveconf:submitTime} as modified
 from dw_rfm.cix_online_member_consume_transform t 
 where t.part='${stat_date}'
-group by t.tenant,t.plat_code,t.card_plan_id,t.join_month
-union all
+group by t.tenant,t.plat_code,t.card_plan_id,t.join_month;
+
+
+insert into table dw_rfm.cix_online_member_consume_transform partition(part='${stat_date}')
 select t1.tenant,null as plat_code,null as uni_shop_id,t1.card_plan_id,t1.join_month,
 	sum(t1.members) as members,
 	sum(t1.payments) as payments,
@@ -201,14 +203,6 @@ select t1.tenant,null as plat_code,null as uni_shop_id,t1.card_plan_id,t1.join_m
 from dw_rfm.cix_online_member_consume_transform t1 
 where t1.part='${stat_date}'
 group by t1.tenant,t1.card_plan_id,t1.join_month;
-
--- 需要解决union all产生的文件问题
-insert overwrite table dw_rfm.cix_online_member_consume_transform partition(part='${stat_date}')
-select tenant,plat_code,uni_shop_id,card_plan_id,join_month,members,payments,
-	  f0,f1,f2,f3,f4,f5,
-	  type,end_month,stat_date,modified
-from dw_rfm.cix_online_member_consume_transform
-where part='${stat_date}';
 
 
 --删除临时表

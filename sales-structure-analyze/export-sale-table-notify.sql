@@ -35,16 +35,12 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`sale_structs_analysis_notify`(
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS TEXTFILE;
 
-insert overwrite table dw_rfm.`sale_structs_analysis_notify`
-select a.table_name,a.available,a.modified,a.stat_date
-from(
-	select 'cix_online_sales_structs_day' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-	union all
-	select 'cix_online_sales_structs_month' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-	union all
-	select 'cix_online_sales_structs_year' as table_name,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-) a;
-
-insert overwrite table dw_rfm.sale_structs_analysis_notify 
-    select a.table_name,a.available,a.modified,a.stat_date 
-	from dw_rfm.sale_structs_analysis_notify a;
+insert overwrite table dw_rfm.`sale_structs_analysis_notify` 
+select table_name,a.available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
+from 
+(
+	select 1 as available
+) a
+lateral view explode(split('cix_online_sales_structs_day,
+							cix_online_sales_structs_month,
+							cix_online_sales_structs_year',',')) tname as table_name;
