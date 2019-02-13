@@ -648,7 +648,7 @@ from(
 	(
 		select plat_code,uni_shop_id,shop_id,uni_id,payment,created
 		from dw_rfm.b_last14month_trade_temp
-		where substr(created,1,10) > date_sub('${stat_date}',-32)
+		where substr(created,1,10) > date_sub('${stat_date}',32)
 	)t
 	group by t.plat_code,t.uni_shop_id,t.shop_id,t.uni_id,substr(t.created,1,10)
 ) a

@@ -29,7 +29,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS dw_source.`s_plat_shop_category`(
     `plat_code` string,
     `shop_id` string, 
     `category_id` string,
-	`parent_category_id` string
+	`parent_category_id` string,
     `category_name` string
 )
 partitioned by(`dt` string)
@@ -38,16 +38,16 @@ STORED AS TEXTFILE
 LOCATION '/user/hive/source_data/business_source/product/catogery';
 
 -- 批量重设分区
-msck repair table dw_source.`s_std_product_increm`;
+msck repair table dw_source.`s_plat_shop_category`;
 
 -- 创建商品历史信息表
-CREATE TABLE IF NOT EXISTS dw_base.`b_plat_shop_category`(
+CREATE TABLE IF NOT EXISTS dw_business.`b_plat_shop_category`(
 	`data_from` int,
 	`partner` string,
     `plat_code` string,
     `shop_id` string, 
     `category_id` string,
-	`parent_category_id` string
+	`parent_category_id` string,
     `category_name` string
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
@@ -55,7 +55,7 @@ STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
 
 
 -- 类目全量覆盖原有数据
-insert overwrite table dw_base.`b_plat_shop_category`
+insert overwrite table dw_business.`b_plat_shop_category`
 select t.data_from,t.partner,t.plat_code,t.shop_id,t.category_id,t.parent_category_id,t.category_name
  from (
 	select t1.*,row_number() over(partition by t1.partner,t1.plat_code,t1.shop_id,t1.category_id) as num
