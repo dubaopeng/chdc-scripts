@@ -1,7 +1,14 @@
 SET mapred.job.name='tenant-rfm-width-table-preMonthEnd';
 --set hive.execution.engine=mr;
-set hive.tez.container.size=16144;
+
+set hive.tez.auto.reducer.parallelism=true;
+set hive.tez.container.size=16384;
+set hive.auto.convert.join.noconditionaltask=true;
+set hive.auto.convert.join.noconditionaltask.size=4915;
+set tez.runtime.unordered.output.buffer.size-mb=1640;
+set tez.runtime.io.sort.mb=6553;
 set hive.cbo.enable=true;
+
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
 set mapred.min.split.size.per.node=100000000;
@@ -225,6 +232,18 @@ from
 	left join dw_base.b_std_shop_customer_rel c2
 	on c1.uni_id = c2.uni_id
 	where c2.plat_code is not null and c2.uni_shop_id is not null
+	
+	select r.tenant,r.plat_code,r.shop_id,r1.uni_shop_id,r1.uni_id,r1.modified
+	from dw_base.b_std_tenant_shop r
+		left join (
+		select c1.tenant,c2.plat_code,c2.uni_shop_id,c2.shop_id,c1.uni_id,c1.modified 
+		from (select tenant,uni_id,modified from dw_base.b_std_customer where tenant='${tenant}') c1
+		left join dw_base.b_std_shop_customer_rel c2
+		on c1.uni_id = c2.uni_id
+		where c2.plat_code is not null
+	) r1
+	on r.tenant=r1.tenant and r.plat_code=r1.plat_code and r.shop_id=r1.shop_id
+	where r1.tenant is not null
 )t
 left outer join
 (

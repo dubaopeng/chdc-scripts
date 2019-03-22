@@ -1,5 +1,6 @@
 SET mapred.job.name='label_rfm_history_all_analyze';
 --set hive.execution.engine=mr;
+
 set hive.tez.auto.reducer.parallelism=true;
 set hive.tez.container.size=16384;
 --set tez.am.resource.memory.mb=16384;
@@ -8,6 +9,7 @@ set hive.auto.convert.join.noconditionaltask.size=4915;
 set tez.runtime.unordered.output.buffer.size-mb=1640;
 set tez.runtime.io.sort.mb=6553;
 set hive.cbo.enable=true;
+
 SET hive.exec.compress.output=true;
 set hive.optimize.index.filter=true;
 SET mapred.max.split.size=512000000;
@@ -259,10 +261,17 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.shop_id,t.uni_id,
         when substr(r.last_created,1,10) <= ${hiveconf:twoyear} then '7' end as customer_type
 from 
 (
-	select c1.tenant,c2.plat_code,c2.shop_id,c2.uni_shop_id,c1.uni_id from dw_base.b_std_customer c1
+	select r.tenant,r.plat_code,r.shop_id,r1.uni_shop_id,r1.uni_id,r1.modified
+	from dw_base.b_std_tenant_shop r
+		left join (
+		select c1.tenant,c2.plat_code,c2.uni_shop_id,c2.shop_id,c1.uni_id,c1.modified 
+		from dw_base.b_std_customer c1
 		left join dw_base.b_std_shop_customer_rel c2
 		on c1.uni_id = c2.uni_id
 		where c2.plat_code is not null
+	) r1
+	on r.tenant=r1.tenant and r.plat_code=r1.plat_code and r.shop_id=r1.shop_id
+	where r1.tenant is not null
 ) t
 left join
 (

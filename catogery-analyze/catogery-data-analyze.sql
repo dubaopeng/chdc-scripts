@@ -303,10 +303,10 @@ from (
 				select t.tenant,t.plat_code,t.uni_shop_id,
 				if(t.year_buy_times>=1,1,0) as active, 
 				if(t.year_buy_times >= 2,1,0) as repurchase, 
-				if(t.year_buy_times >=1 and t.first_buy_time >= add_months('${stat_date}',-12),1,0) as active_new,
-				if(t.year_buy_times >=2 and t.first_buy_time >= add_months('${stat_date}',-12),1,0) as new_repurchase,
-				if(t.year_buy_times >=1 and t.first_buy_time < add_months('${stat_date}',-12),1,0) as active_old,
-				if(t.year_buy_times >=2 and t.first_buy_time < add_months('${stat_date}',-12),1,0)as old_repurchase
+				if(t.year_buy_times >=1 and t.first_buy_time > add_months('${stat_date}',-12),1,0) as active_new,
+				if(t.year_buy_times >=2 and t.first_buy_time > add_months('${stat_date}',-12),1,0) as new_repurchase,
+				if(t.year_buy_times >=1 and t.first_buy_time <= add_months('${stat_date}',-12),1,0) as active_old,
+				if(t.year_buy_times >=2 and t.first_buy_time <= add_months('${stat_date}',-12),1,0)as old_repurchase
 				from dw_rfm.b_qqd_shop_rfm t
 				where part='${stat_date}'
 			) r
@@ -404,7 +404,7 @@ from(
 			count(t1.uni_id) customer_num
 		from dw_rfm.b_qqd_shop_rfm t1
 		where t1.part ='${stat_date}'
-			and t1.first_buy_time >= add_months('${stat_date}',-12)
+			and t1.first_buy_time > add_months('${stat_date}',-12)
 			and t1.second_buy_time is not null
 			and t1.year_buy_times > 1
 		group by t1.tenant,t1.plat_code,t1.uni_shop_id,datediff(t1.second_buy_time,t1.first_buy_time)

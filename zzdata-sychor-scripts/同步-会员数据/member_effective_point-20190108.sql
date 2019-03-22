@@ -22,7 +22,6 @@ set hive.merge.mapredfiles=true;
 set hive.merge.size.per.task = 512000000;
 set hive.support.concurrency=false;
 
---add jar hdfs://master01.bigdata.shuyun.com:8020/user/hive/jar/plat-hive-udf-1.0.0.jar;
 add jar hdfs://standard-cluster/user/hive/jar/plat-hive-udf-1.0.0.jar;
 create temporary function cardid_hash as 'com.shuyun.plat.hive.udf.CardPlanIdHashUDF';
 
@@ -36,7 +35,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS dw_source.`s_member_efffect_point`(
 	`create_date` string,
 	`overdue_date` string,
 	`valid` int,
-	`modify_time` string
+	`modify_time` string,
+	`tenant` string
 )
 partitioned by(`dt` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
@@ -56,22 +56,31 @@ CREATE TABLE IF NOT EXISTS dw_business.`b_member_efffect_point`(
 	`create_date` string,
 	`overdue_date` string,
 	`valid` int,
-	`modify_time` string
+	`modify_time` string,
+	`tenant` string
 )
 partitioned by(`part` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
-STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
+STORED AS ORC tblproperties ("orc.compress" = "SNAPPY",'orc.bloom.filter.columns'='card_plan_id');
 
 -- 合并去重取最新数据
-insert overwrite table dw_business.`b_member_efffect_point` partition(part)
-select t.card_plan_id,t.member_id,t.point,t.effective_date,t.occur_date,t.create_date,t.overdue_date,
-		t.valid,t.modify_time,cardid_hash(t.card_plan_id) as part
- from (
-	select *,row_number() over (partition by card_plan_id,member_id order by modify_time desc) as num 
-    from dw_source.`s_member_efffect_point` where dt='${stat_date}'
-) t
-where t.num=1
-distribute by cardid_hash(t.card_plan_id);
+insert overwrite table dw_business.b_member_efffect_point partition(part)
+select a.card_plan_id,a.member_id,a.point,a.effective_date,a.occur_date,a.create_date,a.overdue_date,a.valid,a.modify_time,a.tenant,
+	   cardid_hash(a.card_plan_id) as part
+from (
+	select re.card_plan_id,re.member_id,re.point,re.effective_date,re.occur_date,re.create_date,re.overdue_date,re.valid,re.modify_time,re.tenant,
+		row_number() over (partition by re.card_plan_id,re.member_id order by re.modify_time desc) as num 
+	from(
+		select t.card_plan_id,t.member_id,t.point,t.effective_date,t.occur_date,t.create_date,t.overdue_date,t.valid,t.modify_time,t.tenant
+		from dw_business.b_member_efffect_point t
+		union all
+		select t2.card_plan_id,t2.member_id,t2.point,t2.effective_date,t2.occur_date,t2.create_date,t2.overdue_date,t2.valid,
+		if(t2.modify_time='',t2.occur_date,t2.modify_time) as modify_time,t2.tenant
+		from dw_source.s_member_efffect_point t2 where t2.dt='${stat_date}'
+	)re
+) a 
+where a.num = 1
+distribute by cardid_hash(a.card_plan_id);
 
 
 

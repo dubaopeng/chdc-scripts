@@ -22,8 +22,6 @@ set hive.merge.mapredfiles=true;
 set hive.merge.size.per.task = 512000000;
 set hive.support.concurrency=false;
 
-
---add jar hdfs://master01.bigdata.shuyun.com:8020/user/hive/jar/plat-hive-udf-1.0.0.jar;
 add jar hdfs://standard-cluster/user/hive/jar/plat-hive-udf-1.0.0.jar;
 create temporary function cardid_hash as 'com.shuyun.plat.hive.udf.CardPlanIdHashUDF';
 
@@ -42,7 +40,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS dw_source.`s_std_member`(
 	`shop_id` string,
 	`guide_id` string,
 	`created` string,
-	`modified` string
+	`modified` string,
+	`tenant` string
 )
 partitioned by(`dt` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
@@ -67,23 +66,25 @@ CREATE TABLE IF NOT EXISTS dw_business.`b_std_member`(
 	`shop_id` string,
 	`guide_id` string,
 	`created` string,
-	`modified` string
+	`modified` string,
+	`tenant` string
 )
 partitioned by(`part` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
-STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
+STORED AS ORC tblproperties ("orc.compress" = "SNAPPY",'orc.bloom.filter.columns'='card_plan_id');
 
 
 -- 合并并去重插入结果
-insert overwrite table dw_business.`b_std_member` partition(part)
-select t.card_plan_id,t.member_id,t.plat_code,t.uni_shop_id,t.card_number,t.card_name,t.bind_mobile,t.name,t.birthday,t.gender,t.shop_id,t.guide_id,t.created,t.modified,cardid_hash(t.card_plan_id) as part
+insert overwrite table dw_business.b_std_member partition(part)
+select t.card_plan_id,t.member_id,t.plat_code,t.uni_shop_id,t.card_number,t.card_name,t.bind_mobile,t.name,t.birthday,t.gender,t.shop_id,t.guide_id,t.created,t.modified,t.tenant,cardid_hash(t.card_plan_id) as part
  from (
-	select re.*,row_number() over(distribute by re.card_plan_id,re.member_id,re.card_number sort by re.modified desc) as num
+	select re.card_plan_id,re.member_id,re.plat_code,re.uni_shop_id,re.card_number,re.card_name,re.bind_mobile,re.name,re.birthday,re.gender,re.shop_id,re.guide_id,re.created,re.modified,re.tenant,
+		row_number() over(distribute by re.card_plan_id,re.member_id,re.card_number sort by re.modified desc) as num
 	from (
-		select t1.card_plan_id,t1.member_id,t1.plat_code,t1.uni_shop_id,t1.card_number,t1.card_name,t1.bind_mobile,t1.name,t1.birthday,t1.gender,t1.shop_id,t1.guide_id,t1.created,t1.modified
+		select t1.card_plan_id,t1.member_id,t1.plat_code,t1.uni_shop_id,t1.card_number,t1.card_name,t1.bind_mobile,t1.name,t1.birthday,t1.gender,t1.shop_id,t1.guide_id,t1.created,t1.modified,t1.tenant
 			from dw_business.`b_std_member` t1
 		union all 
-		select t2.card_plan_id,t2.member_id,t2.plat_code,t2.uni_shop_id,t2.card_number,t2.card_name,t2.bind_mobile,t2.name,t2.birthday,t2.gender,t2.shop_id,t2.guide_id,t2.created,t2.modified
+		select t2.card_plan_id,t2.member_id,t2.plat_code,t2.uni_shop_id,t2.card_number,t2.card_name,t2.bind_mobile,t2.name,t2.birthday,t2.gender,t2.shop_id,t2.guide_id,t2.created,t2.modified,t2.tenant
 			from dw_source.`s_std_member` t2 where t2.dt='${stat_date}'
 	) re
 ) t

@@ -9,7 +9,7 @@ w1jaJywRtq1sdo
 --driver 
 com.mysql.jdbc.Driver 
 --query
-delete@from@cix_online_point_store_mp@where@stat_date='${stat_date}'
+delete@from@cix_online_card_store_point@where@stat_date='${stat_date}'
 
 
 #积分存量趋势
@@ -30,7 +30,7 @@ delete@from@cix_online_point_store_trend@where@stat_date='${stat_date}'
 #sqoop 数据导出到mysql
 
 #积分存量分析结果
-export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_point_store_mp" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_point_store_mp/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_card_store_point" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_online_card_store_point/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
 
 #积分存量趋势
 
@@ -41,3 +41,7 @@ export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/
 
 export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage --username dmadmin --password w1jaJywRtq1sdo --table  "cix_online_customer_analysis_notify" --export-dir "/apps/hive/warehouse/dw_rfm.db/sale_structs_analysis_notify" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
 
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_tenant_customer_grade_result" --export-dir "/apps/hive/warehouse/dw_customer_insight.db/cix_tenant_customer_grade_result/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_tenant_customer_grade_result" --export-dir "/apps/hive/warehouse/dw_customer_insight.db/cix_tenant_customer_grade_result/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"

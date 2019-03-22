@@ -47,7 +47,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS dw_source.`s_std_product_increm`(
 partitioned by(`dt` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
 STORED AS TEXTFILE
-LOCATION '/user/hive/source_data/business_source/product/base';
+LOCATION '/user/hive/source_data/business_source/product';
 
 -- 批量重设分区
 msck repair table dw_source.`s_std_product_increm`;

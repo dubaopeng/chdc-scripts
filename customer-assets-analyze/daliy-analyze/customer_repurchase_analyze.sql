@@ -78,10 +78,10 @@ from(
 		select t.tenant,
 		if(t.year_buy_times>=1,1,0) active, 
 		if(t.year_buy_times >= 2,1,0) repurchase, 
-		if((t.year_buy_times >=1 and t.first_buy_time >= ${hiveconf:beforeAYear}),1,0) active_new,
-		if((t.year_buy_times >=2 and t.first_buy_time >= ${hiveconf:beforeAYear}),1,0) new_repurchase,
-		if((t.year_buy_times >=1 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) active_old,
-		if((t.year_buy_times >=2 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) old_repurchase
+		if((t.year_buy_times >=1 and t.first_buy_time > ${hiveconf:beforeAYear}),1,0) active_new,
+		if((t.year_buy_times >=2 and t.first_buy_time > ${hiveconf:beforeAYear}),1,0) new_repurchase,
+		if((t.year_buy_times >=1 and t.first_buy_time <= ${hiveconf:beforeAYear}),1,0) active_old,
+		if((t.year_buy_times >=2 and t.first_buy_time <= ${hiveconf:beforeAYear}),1,0) old_repurchase
 		from dw_rfm.b_qqd_tenant_rfm t
 		where t.part='${stat_date}'
 	) r
@@ -101,10 +101,10 @@ from(
 		select t.tenant,t.plat_code,
 		if(t.year_buy_times>=1,1,0) active, 
 		if(t.year_buy_times >= 2,1,0) repurchase, 
-		if((t.year_buy_times >=1 and t.first_buy_time >= ${hiveconf:beforeAYear}),1,0) active_new,
-		if((t.year_buy_times >=2 and t.first_buy_time >= ${hiveconf:beforeAYear}),1,0) new_repurchase,
-		if((t.year_buy_times >=1 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) active_old,
-		if((t.year_buy_times >=2 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) old_repurchase
+		if((t.year_buy_times >=1 and t.first_buy_time > ${hiveconf:beforeAYear}),1,0) active_new,
+		if((t.year_buy_times >=2 and t.first_buy_time > ${hiveconf:beforeAYear}),1,0) new_repurchase,
+		if((t.year_buy_times >=1 and t.first_buy_time <= ${hiveconf:beforeAYear}),1,0) active_old,
+		if((t.year_buy_times >=2 and t.first_buy_time <= ${hiveconf:beforeAYear}),1,0) old_repurchase
 		from dw_rfm.b_qqd_plat_rfm t
 		where t.part='${stat_date}'
 	) r
@@ -126,10 +126,10 @@ from(
 			select t.tenant,t.plat_code,t.uni_shop_id,
 			if(t.year_buy_times>=1,1,0) active, 
 			if(t.year_buy_times >= 2,1,0) repurchase, 
-			if((t.year_buy_times >=1 and t.first_buy_time >= ${hiveconf:beforeAYear}),1,0) active_new,
-			if((t.year_buy_times >=2 and t.first_buy_time >= ${hiveconf:beforeAYear}),1,0) new_repurchase,
-			if((t.year_buy_times >=1 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) active_old,
-			if((t.year_buy_times >=2 and t.first_buy_time < ${hiveconf:beforeAYear}),1,0) old_repurchase
+			if((t.year_buy_times >=1 and t.first_buy_time > ${hiveconf:beforeAYear}),1,0) active_new,
+			if((t.year_buy_times >=2 and t.first_buy_time > ${hiveconf:beforeAYear}),1,0) new_repurchase,
+			if((t.year_buy_times >=1 and t.first_buy_time <= ${hiveconf:beforeAYear}),1,0) active_old,
+			if((t.year_buy_times >=2 and t.first_buy_time <= ${hiveconf:beforeAYear}),1,0) old_repurchase
 			from dw_rfm.b_qqd_shop_rfm t
 			where t.part='${stat_date}'
 		) r

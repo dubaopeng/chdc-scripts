@@ -35,7 +35,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS dw_source.`s_plat_shop_category`(
 partitioned by(`dt` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
 STORED AS TEXTFILE
-LOCATION '/user/hive/source_data/business_source/product/catogery';
+LOCATION '/user/hive/source_data/business_source/category';
 
 -- 批量重设分区
 msck repair table dw_source.`s_plat_shop_category`;

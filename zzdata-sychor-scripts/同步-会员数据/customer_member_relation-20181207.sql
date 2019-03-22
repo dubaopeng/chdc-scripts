@@ -22,8 +22,6 @@ set hive.merge.mapredfiles=true;
 set hive.merge.size.per.task = 512000000;
 set hive.support.concurrency=false;
 
-
---add jar hdfs://master01.bigdata.shuyun.com:8020/user/hive/jar/plat-hive-udf-1.0.0.jar;
 add jar hdfs://standard-cluster/user/hive/jar/plat-hive-udf-1.0.0.jar;
 create temporary function cardid_hash as 'com.shuyun.plat.hive.udf.CardPlanIdHashUDF';
 
@@ -52,11 +50,16 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
 
 -- 由于关系从在解绑的情况，计算增量是不对的，所以全量覆盖
-insert overwrite table dw_business.`b_customer_member_relation` partition(part)
+insert overwrite table dw_business.b_customer_member_relation partition(part)
 select a.uni_id,a.card_plan_id,a.member_id,cardid_hash(a.card_plan_id) as part
 from (
-	select *,row_number() over (partition by uni_id,card_plan_id,member_id) as num 
-	from dw_source.s_customer_member_relation where dt='${stat_date}'
+	select t.uni_id,t.card_plan_id,t.member_id,
+		row_number() over (partition by t.uni_id,t.card_plan_id,t.member_id) as num
+	from(
+		select uni_id,card_plan_id,member_id from dw_business.b_customer_member_relation
+		union all
+		select uni_id,card_plan_id,member_id from dw_source.s_customer_member_relation where dt='${stat_date}'
+	) t
 ) a 
 where a.num = 1
 distribute by cardid_hash(a.card_plan_id);

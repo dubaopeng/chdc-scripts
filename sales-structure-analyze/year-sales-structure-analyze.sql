@@ -1,6 +1,11 @@
 SET mapred.job.name='year-sales-structure-analyze-年销售结构分析';
 --set hive.execution.engine=mr;
-set hive.tez.container.size=16144;
+set hive.tez.auto.reducer.parallelism=true;
+set hive.tez.container.size=16384;
+set hive.auto.convert.join.noconditionaltask=true;
+set hive.auto.convert.join.noconditionaltask.size=4915;
+set tez.runtime.unordered.output.buffer.size-mb=1640;
+set tez.runtime.io.sort.mb=6553;
 set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;

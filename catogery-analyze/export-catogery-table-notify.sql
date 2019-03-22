@@ -35,12 +35,11 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`category_data_analysis_notify`(
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS TEXTFILE;
 
-insert overwrite table dw_rfm.`category_data_analysis_notify` 
-select table_name,a.available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-from 
-(
-	select 1 as available
-) a
-lateral view explode(split('cix_online_shop_has_permission_category,
-							cix_online_category_customer_assets,
-							cix_online_category_purchase_interval',',')) tname as table_name;
+insert overwrite table dw_rfm.category_data_analysis_notify 
+select a.tablename,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date 
+from (
+	select explode(split(concat_ws(',',
+	   'cix_online_shop_has_permission_category',
+	   'cix_online_category_customer_assets',
+	   'cix_online_category_purchase_interval'),',')) as tablename
+) a;

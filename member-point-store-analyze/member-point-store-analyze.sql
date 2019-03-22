@@ -86,25 +86,21 @@ where substr(t.effective_date,1,10) <= '${stat_date}'
 	  and substr(t.overdue_date,1,10) > '${stat_date}'
 	  and t.valid=1;
 
--- 积分存量MP分析结果，需要同步给业务
-CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_point_store_mp`(
+-- 积分存量MP分析结果，存储中间计算结果，避免union结果无法导出问题
+CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_card_store_point_mp`(
 	`card_plan_id` string,
 	`mptype` int,
 	`interval_type` int,
 	`members` bigint,
-	`member_rate` double,
-	`stat_date` string,
-	`modified` string
+	`member_rate` double
 )
 partitioned by(`part` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
-STORED AS TEXTFILE;
+STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
 
-insert overwrite table dw_rfm.cix_online_point_store_mp partition(part='${stat_date}')
+insert overwrite table dw_rfm.cix_online_card_store_point_mp partition(part='${stat_date}')
 select r1.card_plan_id,r1.mptype,r1.interval_type,r1.members,
-		(r1.members/r.totalmembers) as member_rate,
-		'${stat_date}' as stat_date,
-		${hiveconf:submitTime} as modified
+		(r1.members/r.totalmembers) as member_rate
 from
 (
 	select t.card_plan_id,t.mp1 as mptype,100 as interval_type,count(t.member_id) members
@@ -126,6 +122,29 @@ left join
 	group by tmp.card_plan_id
 ) r
 on r1.card_plan_id=r.card_plan_id;
+
+-- 创建txt结果，同步给业务库
+CREATE TABLE IF NOT EXISTS dw_rfm.`cix_online_card_store_point`(
+	`card_plan_id` string,
+	`mptype` int,
+	`interval_type` int,
+	`members` bigint,
+	`member_rate` double,
+	`stat_date` string,
+	`modified` string
+)
+partitioned by(`part` string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
+STORED AS TEXTFILE;
+
+insert overwrite table dw_rfm.cix_online_card_store_point partition(part='${stat_date}')
+select r1.card_plan_id,r1.mptype,r1.interval_type,r1.members,r1.member_rate,
+		'${stat_date}' as stat_date,
+		${hiveconf:submitTime} as modified
+from dw_rfm.cix_online_card_store_point_mp r1 where r1.part='${stat_date}';
+
+--删除中间临时结果分区
+ALTER TABLE dw_rfm.cix_online_card_store_point_mp DROP IF EXISTS PARTITION (part='${stat_date}');
 
 
 -- 有效积分存量变化趋势分析
@@ -157,7 +176,7 @@ group by t.card_plan_id;
 drop table if exists dw_rfm.b_effect_point_base_temp;
 
 
--- 需要对 cix_online_point_store_mp同步到业务库
+-- 需要对 cix_online_card_store_point同步到业务库
 -- 需要对cix_online_point_store_trend表用sqoop导出到业务库
 
 

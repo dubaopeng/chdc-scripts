@@ -35,15 +35,15 @@ CREATE TABLE IF NOT EXISTS dw_rfm.`customer_asserts_analysis_notify`(
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS TEXTFILE;
 
-insert overwrite table dw_rfm.`customer_asserts_analysis_notify` 
-select table_name,a.available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-from 
-(
-	select 1 as available
-) a
-lateral view explode(split('cix_online_customer_assets_view,
-							cix_online_customer_repurchase_anlyze,
-							cix_online_customer_retention_analyze',',')) tname as table_name;
+							
+insert overwrite table dw_rfm.customer_asserts_analysis_notify 
+select a.tablename,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date 
+from (
+	select explode(split(concat_ws(',',
+	   'cix_online_customer_assets_view',
+	   'cix_online_customer_repurchase_anlyze',
+	   'cix_online_customer_retention_analyze'),',')) as tablename
+) a;
 
 -- TODO 接下来使用sqoop导出上面几个表的数据到mysql表中
 

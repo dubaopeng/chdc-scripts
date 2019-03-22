@@ -30,14 +30,15 @@ set hive.support.concurrency=false;
 
 -- 设置变量记录统计当天是否为月末的那天
 set isMonthEnd=if(date_sub(concat(substr(add_months('${stat_date}',1),0,7),'-01'),1)='${stat_date}',1,0);
--- 设置任务提交时间
 set submitTime=from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss');
 
 -- 1、从会员基础信息表中分析近14个月入会的会员，并给会员打上入会月份标记
 -- 2、以近14个月的会员与今日店铺级RFM宽表进行左联，获取近一年的payments,times
 drop table if exists dw_rfm.b_last14month_member_rfm;
 create table dw_rfm.b_last14month_member_rfm as
-select tmp.tenant,tmp.plat_code,tmp.uni_shop_id,tmp.uni_id,tmp.card_plan_id,tmp.member_id,tmp.joinmonth,
+select tmp.card_plan_id,tmp.member_id,tmp.joinmonth,tmp.uni_id,
+	   tmp.plat_code,tmp.uni_shop_id,
+	   rfm.tenant,
 	 if(rfm.year_payment is null,0,rfm.year_payment) as payment,
 	 case when rfm.year_buy_times is null or rfm.year_buy_times=0 then 0 
 		  when rfm.year_buy_times=1 then 1
@@ -47,31 +48,30 @@ select tmp.tenant,tmp.plat_code,tmp.uni_shop_id,tmp.uni_id,tmp.card_plan_id,tmp.
 		  when rfm.year_buy_times>=5 then 5 end as frequency
 from 
 (
-	select b.tenant,a.plat_code,a.card_plan_id,a.member_id,
-	  concat(a.plat_code,'|',a.shop_id) as uni_shop_id,a.uni_id,a.joinmonth
-	from
-	(
-		select r.card_plan_id,r.member_id,r.joinmonth,r.plat_code,r.shop_id,r1.uni_id
-		from(
-			select t.card_plan_id,t.member_id,t.joinmonth,t1.plat_code,t1.shop_id
-			from (
-				select a.card_plan_id,a.member_id,substr(a.created,1,7) as joinmonth
-				from  dw_business.b_std_member_base_info a
-				where substr(a.created,1,10) > date_sub('${stat_date}',14) --近14个月入会的会员
-					  and substr(a.created,1,10) <= '${stat_date}' 
-			) t
-			join dw_business.b_card_shop_rel t1
-			on t.card_plan_id = t1.card_plan_id
-		) r
-		join dw_business.b_customer_member_relation r1
-		on r.card_plan_id = r1.card_plan_id and r.member_id=r1.member_id
-	) a
-	left join dw_base.b_std_tenant_shop b
-	on a.plat_code=b.plat_code and a.shop_id=b.shop_id
-	where b.tenant is not null
+	select r.card_plan_id,r.member_id,r.joinmonth,r.plat_code,
+		concat(r.plat_code,'|',r.shop_id) as uni_shop_id,
+		r1.uni_id
+	from(		
+		select t1.card_plan_id,t1.plat_code,t1.shop_id,t.member_id,t.joinmonth
+			from dw_business.b_card_shop_rel t1
+		left join (
+			select a.card_plan_id,a.member_id,substr(a.created,1,7) as joinmonth
+			from  dw_business.b_std_member_base_info a
+			where substr(a.created,1,10) > add_months('${stat_date}',-14) 
+				  and substr(a.created,1,10) <= '${stat_date}' 
+		)t
+		on t1.card_plan_id = t.card_plan_id
+		where t.member_id is not null
+	) r
+	join dw_business.b_customer_member_relation r1
+	on r.card_plan_id = r1.card_plan_id and r.member_id=r1.member_id
 ) tmp
-left outer join dw_rfm.b_qqd_shop_rfm rfm
-on tmp.tenant=rfm.tenant and tmp.plat_code = rfm.plat_code and tmp.uni_shop_id=rfm.uni_shop_id and tmp.uni_id=rfm.uni_id;
+left outer join (
+	select tenant,plat_code,uni_shop_id,uni_id,year_payment,year_buy_times 
+	from dw_rfm.b_qqd_shop_rfm where part='${stat_date}'
+)rfm
+on tmp.plat_code = rfm.plat_code and tmp.uni_shop_id=rfm.uni_shop_id and tmp.uni_id=rfm.uni_id
+where rfm.tenant is not null;
 
 
 -- 会员消费转化表定义

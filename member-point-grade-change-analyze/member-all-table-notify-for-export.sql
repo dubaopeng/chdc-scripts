@@ -36,18 +36,15 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS TEXTFILE;
 
 insert overwrite table dw_rfm.`member_all_table_notify` 
-select table_name,a.available,
-	${hiveconf:submitTime} as modified,'${stat_date}' as stat_date
-from 
-(
-	select 1 as available
-) a
-lateral view explode(split('cix_online_member_point_grade_change,
-							cix_online_member_grade_transform,
-							cix_online_card_store_point,
-							cix_online_point_store_trend,
-							cix_online_member_life_cycle,
-							cix_online_member_consume_transform',',')) tname as table_name;
+select a.tablename,1 as available,${hiveconf:submitTime} as modified,'${stat_date}' as stat_date 
+from (
+	select explode(split(concat_ws(',','cix_online_member_point_grade_change',
+	   'cix_online_member_grade_transform',
+	   'cix_online_card_store_point',
+	   'cix_online_point_store_trend',
+	   'cix_online_member_life_cycle',
+	   'cix_online_member_consume_transform'),',')) as tablename
+) a;
 
 -- TODO 接下来使用sqoop导出上面几个表的数据到mysql表中
 

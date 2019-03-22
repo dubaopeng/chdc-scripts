@@ -29,12 +29,14 @@ CREATE EXTERNAL TABLE IF NOT EXISTS dw_source.`s_member_point_change`(
     `change_value` bigint,
 	`change_time` string,
 	`action_type` string,
-	`source` string
+	`source` string,
+	`id` string,
+	`tenant` string
 )
 partitioned by(`dt` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' LINES TERMINATED BY '\n'
 STORED AS TEXTFILE
-LOCATION '/user/hive/source_data/std_source/member/gradechange';
+LOCATION '/user/hive/source_data/std_source/member/pointchange';
 
 -- 批量重设分区
 msck repair TABLE dw_source.`s_member_point_change`;
@@ -46,21 +48,23 @@ CREATE TABLE IF NOT EXISTS dw_business.`b_member_point_change`(
     `change_value` bigint,
 	`change_time` string,
 	`action_type` string,
-	`source` string
+	`source` string,
+	`id` string,
+	`tenant` string
 )
 partitioned by(`part` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
 
 -- 合并去重取最新数据
-insert into table dw_business.`b_member_point_change` partition(part)
-select t.card_plan_id,t.member_id,t.change_value,t.change_time,t.action_type,t.source,substr(t.change_time,1,10) as part
- from (
-	select *,row_number() over (partition by card_plan_id,member_id,change_time) as num 
-    from dw_source.`s_member_point_change` where dt='${stat_date}'
+insert overwrite table dw_business.b_member_point_change partition(part='${stat_date}')
+select t.card_plan_id,t.member_id,t.change_value,t.change_time,t.action_type,t.source,t.id,t.tenant
+from (
+	select card_plan_id,member_id,change_value,change_time,action_type,source,id,tenant,
+		row_number() over (partition by id) as num 
+    from dw_source.s_member_point_change where dt='${stat_date}'
 ) t
-where t.num=1
-distribute by substr(t.change_time,1,10);
+where t.num=1;
 
 
 
