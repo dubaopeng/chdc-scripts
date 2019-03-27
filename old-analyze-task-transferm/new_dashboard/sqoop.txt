@@ -1,0 +1,14 @@
+export --connect  jdbc:mysql://rm-vy102gp93996svkdt.mysql.rds.aliyuncs.com:3306/new_dashboard  --username newbi_odps --password TgCjjdJ6vHG4S --table  "dashboard_result_trade_count_analysis" --export-dir "/data/hive/warehouse/new_dashboard.db/dashboard_result_trade_count_analysis" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+export --connect  jdbc:mysql://rm-vy102gp93996svkdt.mysql.rds.aliyuncs.com:3306/new_dashboard  --username newbi_odps --password TgCjjdJ6vHG4S --table  "dashboard_result_trade_status_analysis" --export-dir "/data/hive/warehouse/new_dashboard.db/dashboard_result_trade_status_analysis" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+export --connect  jdbc:mysql://rm-vy102gp93996svkdt.mysql.rds.aliyuncs.com:3306/new_dashboard  --username newbi_odps --password TgCjjdJ6vHG4S --table  "dashboard_result_member" --export-dir "/data/hive/warehouse/new_dashboard.db/dashboard_result_member" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+export --connect  jdbc:mysql://rm-vy102gp93996svkdt.mysql.rds.aliyuncs.com:3306/new_dashboard  --username newbi_odps --password TgCjjdJ6vHG4S --table  "dashboard_result_shop_dsr" --export-dir "/data/hive/warehouse/new_dashboard.db/dashboard_result_shop_dsr" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+export --connect  jdbc:mysql://rm-vy102gp93996svkdt.mysql.rds.aliyuncs.com:3306/new_dashboard  --username newbi_odps --password TgCjjdJ6vHG4S --table  "dashboard_result_shop_rootcid" --export-dir "/data/hive/warehouse/new_dashboard.db/dashboard_result_shop_rootcid" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+
+
+export --connect  jdbc:mysql://rm-vy102gp93996svkdt.mysql.rds.aliyuncs.com:3306/new_dashboard  --username newbi_odps --password TgCjjdJ6vHG4S --table  "dashboard_table_mapping" --export-dir "/data/hive/warehouse/new_dashboard.db/dashboard_table_mapping/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"

@@ -1,6 +1,10 @@
 SET mapred.job.name='b_marketing_statistics_base-营销历史统计作业';
---set hive.execution.engine=mr;
-set hive.tez.container.size=6144;
+set hive.tez.auto.reducer.parallelism=true;
+set hive.tez.container.size=16384;
+set hive.auto.convert.join.noconditionaltask=true;
+set hive.auto.convert.join.noconditionaltask.size=4915;
+set tez.runtime.unordered.output.buffer.size-mb=1640;
+set tez.runtime.io.sort.mb=6553;
 set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
@@ -23,21 +27,20 @@ set hive.merge.size.per.task = 512000000;
 set hive.support.concurrency=false;
 
 -- 1、创建互动统计结果存储表，设置统计分区（按租户分区）
-CREATE TABLE IF NOT EXISTS dw_base.`b_marketing_statistics_base`(
+CREATE TABLE IF NOT EXISTS dw_business.b_marketing_statistics_base(
 	`tenant` string,
     `uni_id` string,
     `total_num` int,
 	`last_time` string
 )
-partitioned by(`part` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
 
 
 -- 2、直接对互动记录进行近90天的数据统计，插入统计基础表中
-insert into table dw_base.`b_marketing_statistics_base` partition(part)
-select t.tenant,t.uni_id,count(t.uni_id) totalnum,max(t.marketing_time) as lasttime,t.tenant as part 
-from dw_base.`b_marketing_history` t
+insert into table dw_business.b_marketing_statistics_base
+select t.tenant,t.uni_id,count(t.uni_id) totalnum,max(t.marketing_time) as lasttime
+from dw_business.`b_marketing_history` t
 where t.day > date_sub('${stat_date}',${daynum}) 
 group by t.tenant,t.uni_id;
 

@@ -1,6 +1,10 @@
 SET mapred.job.name='b_marketing_statistics_result-用户营销数据增量统计';
---set hive.execution.engine=mr;
-set hive.tez.container.size=6144;
+set hive.tez.auto.reducer.parallelism=true;
+set hive.tez.container.size=16384;
+set hive.auto.convert.join.noconditionaltask=true;
+set hive.auto.convert.join.noconditionaltask.size=4915;
+set tez.runtime.unordered.output.buffer.size-mb=1640;
+set tez.runtime.io.sort.mb=6553;
 set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
@@ -29,7 +33,6 @@ CREATE TABLE IF NOT EXISTS dw_business.`b_marketing_statistics_base`(
     `total_num` int,
 	`last_time` string
 )
-partitioned by(`part` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
 
@@ -49,12 +52,12 @@ insert into table dw_source.`s_marketing_statistics_temp`
 select re.tenant,re.uni_id,sum(re.totalnum) as totalnum,max(re.lasttime) as lasttime from (
 	select t.tenant,t.uni_id,count(t.uni_id) totalnum,max(t.marketing_time) as lasttime
 	from dw_business.`b_marketing_history` t
-	where t.day = date_sub('${stat_date}',1) 
+	where t.day = '${stat_date}' and t.tenant is not null and t.uni_id is not null
 	group by t.tenant,t.uni_id
 	union all
 	select t1.tenant,t1.uni_id,count(t1.uni_id) totalnum,max(t1.marketing_time) as lasttime
 	from dw_business.`b_marketing_history` t1
-	where t1.day = date_sub('${stat_date}',${daynum}-1) 
+	where t1.day = date_sub('${stat_date}',${daynum}) and t1.tenant is not null and t1.uni_id is not null
 	group by t1.tenant,t1.uni_id
 ) re
 GROUP BY re.tenant,re.uni_id;
@@ -74,7 +77,8 @@ STORED AS TEXTFILE;
 
 -- 6、插入每日统计结果，同步程序对该表进行同步
 insert overwrite table dw_source.`s_marketing_statistics_result`
-select t.tenant,t.uni_id,(t.oldnum+t.changenum) as totalnum, t.lasttime,current_date as stdate from (
+select t.tenant,t.uni_id,(t.oldnum+t.changenum) as totalnum, t.lasttime,current_date as stdate
+from (
 	select a.tenant,a.uni_id,a.total_num as changenum,a.last_time as changetime,
 		case when b.total_num is null then 0 else b.total_num end as oldnum,
 		case when b.last_time is null then a.last_time 
@@ -83,23 +87,23 @@ select t.tenant,t.uni_id,(t.oldnum+t.changenum) as totalnum, t.lasttime,current_
 	from dw_source.s_marketing_statistics_temp a
 	left outer join 
 	dw_business.b_marketing_statistics_base b
-	on (a.tenant = b.tenant and a.uni_id = b.uni_id)
+	on a.tenant = b.tenant and a.uni_id = b.uni_id
 ) t;
 
 -- 7、合并更改后的数据和未变化的数据到基础统计表
-insert overwrite table dw_business.b_marketing_statistics_base partition(part)
-select a.tenant,a.uni_id,a.total_num,a.last_time,a.tenant as part 
+insert overwrite table dw_business.b_marketing_statistics_base
+select a.tenant,a.uni_id,a.total_num,a.last_time 
 	from dw_business.b_marketing_statistics_base  a
 	left outer join
-	(select tenant,uni_id,total_num,last_time from dw_source.`s_marketing_statistics_result` )  b
+	(select tenant,uni_id,total_num,last_time from dw_source.s_marketing_statistics_result )  b
 	on a.tenant = b.tenant and a.uni_id = b.uni_id
 	where b.tenant is null
 union all
-	select t.tenant,t.uni_id,t.total_num,t.last_time,t.tenant as part  
-	from dw_source.`s_marketing_statistics_result` t;
+	select t.tenant,t.uni_id,t.total_num,t.last_time  
+	from dw_source.s_marketing_statistics_result t;
 
 
-drop table if exists dw_source.`s_marketing_statistics_temp`;
+drop table if exists dw_source.s_marketing_statistics_temp;
 
 
 

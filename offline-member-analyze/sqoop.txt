@@ -9,7 +9,7 @@ w1jaJywRtq1sdo
 --driver 
 com.mysql.jdbc.Driver 
 --query
-delete@from@cix_offline_plat_member_sale_rate
+delete@from@cix_offline_plat_member_sale_rate@where@stat_date='${stat_date}'
 
 
 #线下会员销售占比分析,店铺统计表
@@ -23,7 +23,7 @@ w1jaJywRtq1sdo
 --driver 
 com.mysql.jdbc.Driver 
 --query
-delete@from@cix_offline_sale_shops_of_card
+delete@from@cix_offline_sale_shops_of_card@where@stat_date='${stat_date}'
 
 
 #线下会员消费统计
@@ -37,7 +37,7 @@ w1jaJywRtq1sdo
 --driver 
 com.mysql.jdbc.Driver 
 --query
-delete@from@cix_offline_member_consume_statistic
+delete@from@cix_offline_member_consume_statistic@where@stat_date='${stat_date}'
 
 
 #线下会员变化统计分析
@@ -55,23 +55,22 @@ delete@from@cix_offline_shop_member_change_statistic@where@stat_date='${stat_dat
 
 
 
-
 #sqoop 数据导出到mysql
 
 #线下会员销售占比分析,平台统计表
-export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_offline_plat_member_sale_rate" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_offline_plat_member_sale_rate" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_offline_plat_member_sale_rate" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_offline_plat_member_sale_rate/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
 
 #线下会员销售占比分析,店铺统计表
 
-export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_offline_sale_shops_of_card" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_offline_sale_shops_of_card" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_offline_sale_shops_of_card" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_offline_sale_shops_of_card/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
 
 #线下会员消费统计
 
-export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_offline_member_consume_statistic" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_offline_member_consume_statistic" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_offline_member_consume_statistic" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_offline_member_consume_statistic/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
 
 #线下会员变化分析结果
 
-export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_offline_shop_member_change_statistic" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_offline_shop_member_change_statistic" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
+export --connect  jdbc:mysql://rm-vy1jfyuhd59u70b17.mysql.rds.aliyuncs.com:3306/data-manage?useUnicode=true&characterEncoding=utf-8 --username dmadmin --password w1jaJywRtq1sdo --table  "cix_offline_shop_member_change_statistic" --export-dir "/apps/hive/warehouse/dw_rfm.db/cix_offline_shop_member_change_statistic/part=${stat_date}" --input-fields-terminated-by "\001"  --lines-terminated-by "\n" --input-null-string "\\N" --input-null-non-string "\\N"
 
 
 #计算结果通知同步

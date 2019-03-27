@@ -1,0 +1,64 @@
+-- 节日关怀
+import
+--connect
+jdbc:mysql://rm-vy1dff92wpbsj738a.mysql.rds.aliyuncs.com:3306/ebm
+--username
+u_ebm_plts
+--password
+Fvq28Zjk9f
+-m
+1
+--target-dir
+/user/event/festive_care/festive_care_shop
+--query
+SELECT shop_id,`variables` FROM t_ea_event_subscribe WHERE started =1 AND scene_id = '-10023' AND deleted = 0 AND $CONDITIONS
+--delete-target-dir
+--fields-terminated-by
+\001
+--lines-terminated-by
+\n
+
+
+-- 店铺复购分析
+
+import
+--connect
+jdbc:mysql://rm-vy1dff92wpbsj738a.mysql.rds.aliyuncs.com:3306/ebm
+--username
+u_ebm_plts
+--password
+Fvq28Zjk9f
+-m
+1
+--target-dir
+/user/event/shop_repurchase/shop_repurchase_shop
+--query
+SELECT shop_id,variables FROM t_ea_event_subscribe WHERE started =1 AND scene_id = '-10022' AND deleted=0 AND $CONDITIONS
+--delete-target-dir
+--fields-terminated-by
+\001
+--lines-terminated-by
+\n
+
+
+
+-- 商品复购分析
+
+import
+--connect
+jdbc:mysql://rm-vy1dff92wpbsj738a.mysql.rds.aliyuncs.com:3306/ebm
+--username
+u_ebm_plts
+--password
+Fvq28Zjk9f
+-m
+1
+--target-dir
+/user/event/item_repurchase/item_repurchase_config/
+--query
+SELECT sub.shop_id,gds.item_id,gds.sku_id,gds.period,cfg.exclude_flag,cfg.exclude_customer,cfg.trigger_status from t_ea_event_subscribe sub inner join t_ea_repurchase_config cfg on sub.id = cfg.event_id inner join t_ea_repurchase_goods gds on cfg.id = gds.repurchase_config_id where sub.started=1 and sub.deleted=0 and $CONDITIONS
+--delete-target-dir
+--fields-terminated-by
+\001
+--lines-terminated-by
+\n

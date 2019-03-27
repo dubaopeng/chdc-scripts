@@ -354,20 +354,8 @@ select
    case when rfm.btyear_payment is null then 0 else rfm.btyear_payment end as btyear_payment,
    case when rfm.btyear_buy_times is null then 0 else rfm.btyear_buy_times end as btyear_buy_times,
    case when rfm.btyear_buy_num is null then 0 else rfm.btyear_buy_num end as btyear_buy_num,
-   '${stat_date}' as stat_date from
-(
-	select r.tenant,r.plat_code,r.shop_id,r1.uni_shop_id,r1.uni_id,r1.modified
-	from dw_base.b_std_tenant_shop r
-		left join (
-		select c1.tenant,c2.plat_code,c2.uni_shop_id,c2.shop_id,c1.uni_id,c1.modified 
-		from dw_base.b_std_customer c1
-		left join dw_base.b_std_shop_customer_rel c2
-		on c1.uni_id = c2.uni_id
-		where c2.plat_code is not null
-	) r1
-	on r.tenant=r1.tenant and r.plat_code=r1.plat_code and r.shop_id=r1.shop_id
-	where r1.tenant is not null
-) cu
+   '${stat_date}' as stat_date 
+from dw_base.b_tenant_plat_shop_customer cu
 left join
 (
 	select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,

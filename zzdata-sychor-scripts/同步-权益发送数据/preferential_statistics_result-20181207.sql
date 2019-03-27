@@ -1,6 +1,10 @@
 SET mapred.job.name='b_preferential_statistics_result-用户权益发送记录增量统计';
---set hive.execution.engine=mr;
-set hive.tez.container.size=6144;
+set hive.tez.auto.reducer.parallelism=true;
+set hive.tez.container.size=16384;
+set hive.auto.convert.join.noconditionaltask=true;
+set hive.auto.convert.join.noconditionaltask.size=4915;
+set tez.runtime.unordered.output.buffer.size-mb=1640;
+set tez.runtime.io.sort.mb=6553;
 set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
@@ -29,7 +33,6 @@ CREATE TABLE IF NOT EXISTS dw_business.`b_preferential_statistics_base`(
     `total_num` int,
 	`last_time` string
 )
-partitioned by(`part` string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\001' lines terminated by '\n'
 STORED AS ORC tblproperties ("orc.compress" = "SNAPPY");
 
@@ -53,9 +56,7 @@ from (
 	(
 		 select a.plat_code,a.plat_account,a.shop_id,a.send_time as actiontime,b.uni_id,c.tenant 
 		 from(
-			 select plat_code,plat_account,shop_id,send_time 
-				from dw_business.b_preferential_send_history 
-				where day = date_sub('${stat_date}',1)
+			 select plat_code,plat_account,shop_id,send_time from dw_business.b_preferential_send_history where day = '${stat_date}'
 		 ) a
 		 LEFT OUTER JOIN
 		 dw_base.b_std_shop_customer_rel b
@@ -63,7 +64,7 @@ from (
 		 LEFT OUTER JOIN
 		 dw_base.b_std_tenant_shop c
 		 on (a.plat_code = c.plat_code and a.shop_id = c.shop_id)
-		 where c.tenant is not null
+		 where c.tenant is not null and b.uni_id is not null
 	) t
 	group by t.tenant,t.uni_id
 	union all 
@@ -72,7 +73,7 @@ from (
 	(
 		 select a1.plat_code,a1.plat_account,a1.shop_id,a1.send_time as actiontime,b1.uni_id,c1.tenant 
 		 from(
-			 select plat_code,plat_account,shop_id,send_time from dw_business.b_preferential_send_history where day = date_sub('${stat_date}',${daynum}-1)
+			 select plat_code,plat_account,shop_id,send_time from dw_business.b_preferential_send_history where day = date_sub('${stat_date}',${daynum})
 		 ) a1
 		 LEFT OUTER JOIN
 		 dw_base.b_std_shop_customer_rel b1
@@ -80,7 +81,7 @@ from (
 		 LEFT OUTER JOIN
 		 dw_base.b_std_tenant_shop c1
 		 on (a1.plat_code = c1.plat_code and a1.shop_id = c1.shop_id)
-		 where c1.tenant is not null
+		 where c1.tenant is not null and b1.uni_id is not null
 	) t1
 	group by t1.tenant,t1.uni_id
 ) re
@@ -114,23 +115,20 @@ from (
 ) t;
 
 -- 6、合并更改后的数据和未变化的数据到基础统计表
-insert overwrite table dw_business.b_preferential_statistics_base partition(part)
-select r.tenant,r.uni_id,r.total_num,r.last_time,r.tenant as part 
+insert overwrite table dw_business.b_preferential_statistics_base
+select r.tenant,r.uni_id,r.total_num,r.last_time
 from (
-	select a.tenant,a.uni_id,a.total_num,a.last_time 
-		from dw_business.b_preferential_statistics_base  a
+	select a.tenant,a.uni_id,a.total_num,a.last_time from dw_business.b_preferential_statistics_base  a
 	left outer join
-	(select tenant,uni_id,total_num,last_time from dw_source.`s_preferential_statistics_result` )  b
-	on a.tenant = b.tenant and a.uni_id = b.uni_id
-		where b.tenant is null
+	(select tenant,uni_id,total_num,last_time from dw_source.s_preferential_statistics_result )  b
+	 on a.tenant = b.tenant and a.uni_id = b.uni_id
+	where b.tenant is null
 	union all
 	select t.tenant,t.uni_id,t.total_num,t.last_time 
-	from dw_source.`s_preferential_statistics_result` t
-)r 
-distribute by r.tenant;
+	from dw_source.s_preferential_statistics_result t
+)r ;
 
-
-drop table if exists dw_source.`s_preferential_statistics_temp`;
+drop table if exists dw_source.s_preferential_statistics_temp;
 
 
 

@@ -1,6 +1,10 @@
 SET mapred.job.name='b_preferential_send_history-权益发送数据';
---set hive.execution.engine=mr;
-set hive.tez.container.size=6144;
+set hive.tez.auto.reducer.parallelism=true;
+set hive.tez.container.size=16384;
+set hive.auto.convert.join.noconditionaltask=true;
+set hive.auto.convert.join.noconditionaltask.size=4915;
+set tez.runtime.unordered.output.buffer.size-mb=1640;
+set tez.runtime.io.sort.mb=6553;
 set hive.cbo.enable=true;
 SET hive.exec.compress.output=true;
 SET mapred.max.split.size=512000000;
@@ -23,7 +27,6 @@ set hive.merge.size.per.task = 512000000;
 set hive.support.concurrency=false;
 
 -- 创建每日权益发送数据增量表
--- DROP TABLE IF EXISTS dw_source.`s_preferential_send_history`;
 CREATE EXTERNAL TABLE IF NOT EXISTS dw_source.`s_preferential_send_history`(
 	`uni_id` string,
     `plat_code` string,

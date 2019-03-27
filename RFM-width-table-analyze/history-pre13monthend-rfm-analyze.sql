@@ -218,20 +218,7 @@ select t.tenant,t.plat_code,t.uni_shop_id,t.uni_id,
 	   case when r.btyear_buy_num is null then 0 else r.btyear_buy_num end as btyear_buy_num,
 	   ${hiveconf:thisMonthEnd} as stat_date,
 	   ${hiveconf:thisMonthEnd} as part
-from 
-(
-	select r.tenant,r.plat_code,r.shop_id,r1.uni_shop_id,r1.uni_id,r1.modified
-	from dw_base.b_std_tenant_shop r
-		left join (
-		select c1.tenant,c2.plat_code,c2.uni_shop_id,c2.shop_id,c1.uni_id,c1.modified 
-		from dw_base.b_std_customer c1
-		left join dw_base.b_std_shop_customer_rel c2
-		on c1.uni_id = c2.uni_id
-		where c2.plat_code is not null
-	) r1
-	on r.tenant=r1.tenant and r.plat_code=r1.plat_code and r.shop_id=r1.shop_id
-	where r1.tenant is not null
-)t
+from dw_base.b_tenant_plat_shop_customer t
 left outer join
 (
 	select a.tenant,a.plat_code,a.uni_shop_id,a.uni_id,
